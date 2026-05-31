@@ -1,4 +1,6 @@
-export const menteeQuestions = [
+import type { AssessmentQuestion } from "@/types/database/assessment";
+
+export const menteeQuestions: AssessmentQuestion[] = [
   {
     id: "stage",
     title: "¿En qué etapa estás actualmente?",
