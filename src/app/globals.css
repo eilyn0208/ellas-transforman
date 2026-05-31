@@ -3,6 +3,13 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Brand palette */
+  --brand: #824be5;
+  --brand-dark: #6f3acc;
+  --brand-light: #eee6fc;
+  --brand-soft: #dbc9f8;
+  --brand-bg: #f7f2fe;
 }
 
 @theme inline {
@@ -10,9 +17,16 @@
   --color-foreground: var(--foreground);
   --font-sans: Arial, Helvetica, sans-serif;
   --font-mono: monospace;
+
+  /* Brand colors disponibles como bg-brand, text-brand, border-brand, etc. */
+  --color-brand: var(--brand);
+  --color-brand-dark: var(--brand-dark);
+  --color-brand-light: var(--brand-light);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-bg: var(--brand-bg);
 }
 
-/* Quitar modo oscuro automático para que register siempre sea blanco */
+/* Quitar modo oscuro automÃ¡tico para que register siempre sea blanco */
 html,
 body {
   margin: 0;
@@ -37,3 +51,4 @@ select {
 input::placeholder {
   color: #c7c7c7;
 }
+

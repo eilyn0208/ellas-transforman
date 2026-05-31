@@ -2,10 +2,13 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [nombre, setNombre] = useState("");
+  const [apellido, setApellido] = useState("");
   const [correo, setCorreo] = useState("");
   const [password, setPassword] = useState("");
   const [aceptaTerminos, setAceptaTerminos] = useState(false);
@@ -15,7 +18,7 @@ export default function RegisterPage() {
   const handleRegister = async () => {
     setMensaje("");
 
-    if (!nombre || !correo || !password) {
+    if (!nombre || !apellido || !correo || !password) {
       setMensaje("Completa todos los campos.");
       return;
     }
@@ -37,7 +40,9 @@ export default function RegisterPage() {
       password,
       options: {
         data: {
-          nombre,
+          nombre: nombre.trim(),
+          apellido: apellido.trim(),
+          nombre_completo: `${nombre.trim()} ${apellido.trim()}`,
         },
       },
     });
@@ -49,7 +54,9 @@ export default function RegisterPage() {
       return;
     }
 
-    setMensaje("Cuenta creada correctamente. Revisa tu correo.");
+    // ✅ Pasa SOLO el nombre (sin apellido) a role-selection
+    const params = new URLSearchParams({ nombre: nombre.trim() });
+    router.push(`/role-selection?${params.toString()}`);
   };
 
   return (
@@ -58,26 +65,31 @@ export default function RegisterPage() {
         <div className="space-y-6">
           {/* Título */}
           <div>
-            <h1 className="text-4xl font-bold text-black">
-              Crea tu cuenta.
-            </h1>
-
+            <h1 className="text-4xl font-bold text-black">Crea tu cuenta.</h1>
             <p className="mt-4 text-lg leading-relaxed text-gray-500">
               Únete a nuestros mentores verificados y empieza sesiones uno a
               uno, talleres y planes de crecimiento.
             </p>
           </div>
 
-          {/* Nombre */}
+          {/* Nombre + Apellido (en una sola fila) */}
           <div>
-            <input
-              type="text"
-              placeholder="Nombre completo"
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              className="w-full rounded-3xl border border-gray-300 px-5 py-4 text-base outline-none focus:border-purple-600"
-            />
-
+            <div className="flex gap-3">
+              <input
+                type="text"
+                placeholder="Nombre"
+                value={nombre}
+                onChange={(e) => setNombre(e.target.value)}
+                className="w-1/2 rounded-3xl border border-gray-300 px-5 py-4 text-base outline-none focus:border-brand"
+              />
+              <input
+                type="text"
+                placeholder="Apellido"
+                value={apellido}
+                onChange={(e) => setApellido(e.target.value)}
+                className="w-1/2 rounded-3xl border border-gray-300 px-5 py-4 text-base outline-none focus:border-brand"
+              />
+            </div>
             <p className="mt-2 text-sm text-gray-500">
               Para una mejor experiencia usa tu nombre real.
             </p>
@@ -90,9 +102,8 @@ export default function RegisterPage() {
               placeholder="Correo electrónico"
               value={correo}
               onChange={(e) => setCorreo(e.target.value)}
-              className="w-full rounded-3xl border border-gray-300 px-5 py-4 text-base outline-none focus:border-purple-600"
+              className="w-full rounded-3xl border border-gray-300 px-5 py-4 text-base outline-none focus:border-brand"
             />
-
             <p className="mt-2 text-sm text-gray-500">
               Enviaremos un correo de verificación.
             </p>
@@ -105,9 +116,8 @@ export default function RegisterPage() {
               placeholder="Crear contraseña"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-3xl border border-gray-300 px-5 py-4 text-base outline-none focus:border-purple-600"
+              className="w-full rounded-3xl border border-gray-300 px-5 py-4 text-base outline-none focus:border-brand"
             />
-
             <p className="mt-2 text-sm text-gray-500">
               Mínimo 8 caracteres, números y caracteres especiales.
             </p>
@@ -118,12 +128,11 @@ export default function RegisterPage() {
             <span className="text-sm text-black">
               Acepto los términos y condiciones
             </span>
-
             <button
               type="button"
               onClick={() => setAceptaTerminos(!aceptaTerminos)}
               className={`relative h-8 w-16 rounded-full transition ${
-                aceptaTerminos ? "bg-purple-600" : "bg-gray-300"
+                aceptaTerminos ? "bg-brand" : "bg-gray-300"
               }`}
             >
               <span
@@ -138,27 +147,22 @@ export default function RegisterPage() {
           <button
             onClick={handleRegister}
             disabled={loading}
-            className="w-full rounded-3xl bg-purple-600 py-4 text-lg font-medium text-white transition hover:opacity-90"
+            className="w-full rounded-3xl bg-brand py-4 text-lg font-medium text-white transition hover:bg-brand-dark disabled:opacity-60"
           >
             {loading ? "Creando cuenta..." : "Crear cuenta"}
           </button>
 
           {/* Mensaje */}
           {mensaje && (
-            <p className="text-center text-sm text-purple-600">
-              {mensaje}
-            </p>
+            <p className="text-center text-sm text-brand">{mensaje}</p>
           )}
 
           {/* Login */}
           <div className="flex flex-wrap items-center justify-center gap-2 pt-4">
-            <p className="text-gray-500">
-              ¿Ya tienes una cuenta?
-            </p>
-
+            <p className="text-gray-500">¿Ya tienes una cuenta?</p>
             <Link
               href="/login"
-              className="rounded-full bg-purple-600 px-4 py-1 text-white"
+              className="rounded-full bg-brand px-4 py-1 text-white"
             >
               Iniciar sesión
             </Link>
