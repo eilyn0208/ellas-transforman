@@ -1,23 +1,25 @@
 "use client";
 
 import { useState } from "react";
-import { mentorQuestions } from "@/constants/mentor-questions";
 import { useRouter } from "next/navigation";
+import { mentorQuestions } from "@/constants/mentor-questions";
+import { supabase } from "@/lib/supabase/client";
 
 export default function MentorOnboardingPage() {
-  const [paso, setPaso] = useState(0);
   const router = useRouter();
 
+  const [paso, setPaso] = useState(0);
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [scaleValue, setScaleValue] = useState<number | null>(null);
   const [textAnswer, setTextAnswer] = useState("");
   const [completed, setCompleted] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const preguntaActual = mentorQuestions[paso];
   const porcentaje = ((paso + 1) / mentorQuestions.length) * 100;
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     const nuevasRespuestas = { ...answers };
 
     if (preguntaActual.type === "single") {
@@ -43,10 +45,58 @@ export default function MentorOnboardingPage() {
       setSelectedOptions([]);
       setScaleValue(null);
       setTextAnswer("");
-    } else {
-      console.log(nuevasRespuestas);
-      setCompleted(true);
+      return;
     }
+
+    setIsSaving(true);
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      console.error("No authenticated user:", userError);
+      router.push("/login");
+      return;
+    }
+
+    const { error } = await supabase.from("mentor_profiles").insert({
+      user_id: user.id,
+      name: user.user_metadata?.full_name ?? "Mentora",
+      role: String(nuevasRespuestas.current_area ?? ""),
+      company: "",
+      bio: String(nuevasRespuestas.mentor_reason ?? ""),
+      expertise: nuevasRespuestas.mentoring_topics ?? [],
+      mentoring_style: String(nuevasRespuestas.mentoring_style ?? ""),
+      availability: String(nuevasRespuestas.mentoring_frequency ?? ""),
+    });
+
+    if (error) {
+      console.error("Error saving mentor profile:", error);
+      alert(JSON.stringify(error));
+      setIsSaving(false);
+      return;
+    }
+
+    const { error: assessmentError } = await supabase
+      .from("mentor_assessments")
+      .insert({
+        user_id: user.id,
+        answers: nuevasRespuestas,
+      });
+
+    if (assessmentError) {
+      console.error(
+        "Error saving mentor assessment:",
+        assessmentError
+      );
+
+      alert(JSON.stringify(assessmentError));
+    }
+
+    setIsSaving(false);
+    setCompleted(true);
   };
 
   const canContinue =
@@ -102,9 +152,9 @@ export default function MentorOnboardingPage() {
 
           <button
             className="w-full rounded-2xl bg-[#824BE5] py-4 text-lg font-semibold text-white hover:opacity-90"
-            onClick={() => router.push("/profile")}
+            onClick={() => router.push("/explore")}
           >
-            Ver mi perfil
+            Ir a Explore
           </button>
         </div>
       </main>
@@ -119,7 +169,6 @@ export default function MentorOnboardingPage() {
             <span>
               Paso {paso + 1} de {mentorQuestions.length}
             </span>
-
             <span>{Math.round(porcentaje)}%</span>
           </div>
 
@@ -247,11 +296,11 @@ export default function MentorOnboardingPage() {
         )}
 
         <button
-          disabled={!canContinue}
+          disabled={!canContinue || isSaving}
           onClick={handleContinue}
           className="mt-10 w-full rounded-2xl bg-[#824BE5] py-4 text-lg font-semibold text-white disabled:opacity-40"
         >
-          Continuar
+          {isSaving ? "Guardando..." : "Continuar"}
         </button>
 
         <div className="mt-10 rounded-2xl border border-gray-200 bg-gray-50 p-5">

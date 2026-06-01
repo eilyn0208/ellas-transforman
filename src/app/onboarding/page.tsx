@@ -114,7 +114,7 @@ export default function OnboardingPage() {
         <button
           className="w-full rounded-2xl bg-[#824BE5] py-4 text-lg font-semibold text-white hover:opacity-90"
         
-          onClick={() => router.push("/discover")}
+          onClick={() => router.push("/explore")}
         >
             Conocer mentoras
         </button>
