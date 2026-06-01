@@ -84,11 +84,20 @@ export default function RoleSelectionPage() {
   const nombre = searchParams.get("nombre") ?? "[tu nombre]";
 
   const handleContinue = () => {
-    if (!selectedRole) return;
-    // navega al onboarding del rol, llevando el nombre adelante
-    const params = new URLSearchParams({ nombre });
-    router.push(`/onboarding/${selectedRole}?${params.toString()}`);
-  };
+  if (!selectedRole) return;
+
+  const params = new URLSearchParams({ nombre });
+
+  if (selectedRole === "mentee") {
+    router.push(`/onboarding?${params.toString()}`);
+    return;
+  }
+
+  if (selectedRole === "mentora") {
+    router.push(`/onboarding/mentor?${params.toString()}`);
+    return;
+  }
+};
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-5 text-gray-900 font-sans">
