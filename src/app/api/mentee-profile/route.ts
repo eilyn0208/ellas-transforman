@@ -80,15 +80,28 @@ export async function POST(request: NextRequest) {
     const texto = response.text;
 
     if (!texto) {
+      console.error("Gemini devolvió respuesta vacía. Candidates:", JSON.stringify(response.candidates));
       return NextResponse.json(
         { error: "No se pudo generar el perfil" },
         { status: 502 }
       );
     }
 
-    const perfil = menteeProfileSchema.safeParse(JSON.parse(texto));
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(texto);
+    } catch {
+      console.error("JSON inválido de Gemini:", texto);
+      return NextResponse.json(
+        { error: "No se pudo generar el perfil" },
+        { status: 502 }
+      );
+    }
+
+    const perfil = menteeProfileSchema.safeParse(parsed);
 
     if (!perfil.success) {
+      console.error("Validación fallida:", perfil.error);
       return NextResponse.json(
         { error: "No se pudo generar el perfil" },
         { status: 502 }
@@ -99,7 +112,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Error generando perfil con IA:", error);
     return NextResponse.json(
-      { error: "Error generando el perfil" },
+      { error: "Error generando el perfil", detail: String(error) },
       { status: 500 }
     );
   }

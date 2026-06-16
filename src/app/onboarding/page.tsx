@@ -30,7 +30,11 @@ export default function OnboardingPage() {
         body: JSON.stringify({ answers: respuestas }),
       });
 
-      if (!res.ok) throw new Error("No se pudo generar el perfil");
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        console.error("Error de API:", errBody);
+        throw new Error("No se pudo generar el perfil");
+      }
 
       const data: MenteeProfile = await res.json();
       setProfile(data);
