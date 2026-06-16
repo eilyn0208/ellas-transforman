@@ -3,16 +3,44 @@
 import { useState } from "react";
 import { menteeQuestions } from "@/constants/mentee-questions";
 import { useRouter } from "next/navigation";
+import type { MenteeProfile } from "@/types/mentee-profile";
 
 export default function OnboardingPage() {
   const [paso, setPaso] = useState(0);
   const router = useRouter();
 
-  const [answers, setAnswers] = useState<Record<string, any>>({});
+  const [answers, setAnswers] = useState<Record<string, unknown>>({});
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [scaleValue, setScaleValue] = useState<number | null>(null);
   const [textAnswer, setTextAnswer] = useState("");
   const [completed, setCompleted] = useState(false);
+
+  const [profile, setProfile] = useState<MenteeProfile | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(false);
+  const [profileError, setProfileError] = useState(false);
+
+  const generarPerfil = async (respuestas: Record<string, unknown>) => {
+    setLoadingProfile(true);
+    setProfileError(false);
+
+    try {
+      const res = await fetch("/api/mentee-profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ answers: respuestas }),
+      });
+
+      if (!res.ok) throw new Error("No se pudo generar el perfil");
+
+      const data: MenteeProfile = await res.json();
+      setProfile(data);
+    } catch (error) {
+      console.error(error);
+      setProfileError(true);
+    } finally {
+      setLoadingProfile(false);
+    }
+  };
 
   const preguntaActual = menteeQuestions[paso];
 
@@ -51,8 +79,8 @@ export default function OnboardingPage() {
       setScaleValue(null);
       setTextAnswer("");
     } else {
-  console.log(nuevasRespuestas);
   setCompleted(true);
+  generarPerfil(nuevasRespuestas);
     }
   };
 
@@ -69,55 +97,78 @@ export default function OnboardingPage() {
     <main className="min-h-screen bg-white px-6 py-10 flex items-center justify-center">
       <div className="w-full max-w-2xl">
 
-        <div className="text-center mb-10">
-          <h2 className="text-[#824BE5] font-semibold text-lg mb-2">
-            Tu perfil
-          </h2>
+        {loadingProfile && (
+          <div className="py-20 text-center">
+            <div className="mx-auto mb-6 h-10 w-10 animate-spin rounded-full border-4 border-[#DACDF2] border-t-[#824BE5]" />
+            <p className="text-lg text-gray-600">
+              Estamos creando tu perfil personalizado...
+            </p>
+          </div>
+        )}
 
-          <h1 className="text-5xl font-bold text-black mb-4">
-            Future Builder
-          </h1>
+        {!loadingProfile && profileError && (
+          <div className="py-20 text-center">
+            <p className="mb-6 text-lg text-gray-600">
+              No pudimos generar tu perfil en este momento.
+            </p>
 
-          <p className="text-lg text-gray-600 leading-relaxed">
-            Tienes mucha curiosidad y ambición, pero todavía estás explorando
-            qué camino profesional se siente correcto para ti. Probablemente
-            buscas claridad, dirección y alguien que te ayude a convertir ideas
-            en pasos concretos.
-          </p>
-        </div>
+            <button
+              className="rounded-2xl bg-[#824BE5] px-6 py-4 text-lg font-semibold text-white hover:opacity-90"
+              onClick={() => generarPerfil(answers)}
+            >
+              Reintentar
+            </button>
+          </div>
+        )}
 
-        <div className="rounded-3xl bg-[#DACDF2] p-6 mb-6">
-          <h3 className="font-bold text-xl mb-4 text-black">
-            Lo que más podría ayudarte ahora
-          </h3>
+        {!loadingProfile && !profileError && profile && (
+          <>
+            <div className="text-center mb-10">
+              <h2 className="text-[#824BE5] font-semibold text-lg mb-2">
+                Tu perfil
+              </h2>
 
-          <ul className="space-y-3 text-black">
-            <li>✓ Mentoría estructurada</li>
-            <li>✓ Exposición a experiencias reales</li>
-            <li>✓ Pequeñas metas accionables</li>
-            <li>✓ Conversaciones honestas sobre carreras</li>
-          </ul>
-        </div>
+              <h1 className="text-5xl font-bold text-black mb-4">
+                {profile.title}
+              </h1>
 
-        <div className="rounded-3xl border border-gray-200 p-6 mb-8">
-          <h3 className="font-bold text-xl mb-4 text-black">
-            Te recomendamos mentoras que:
-          </h3>
+              <p className="text-lg text-gray-600 leading-relaxed">
+                {profile.description}
+              </p>
+            </div>
 
-          <ul className="space-y-3 text-black">
-            <li>✓ Hayan explorado múltiples caminos</li>
-            <li>✓ Trabajen con estudiantes o early career</li>
-            <li>✓ Ofrezcan acompañamiento cercano</li>
-          </ul>
-        </div>
+            <div className="rounded-3xl bg-[#DACDF2] p-6 mb-6">
+              <h3 className="font-bold text-xl mb-4 text-black">
+                Lo que más podría ayudarte ahora
+              </h3>
 
-        <button
-          className="w-full rounded-2xl bg-[#824BE5] py-4 text-lg font-semibold text-white hover:opacity-90"
-        
-          onClick={() => router.push("/discover")}
-        >
-            Conocer mentoras
-        </button>
+              <ul className="space-y-3 text-black">
+                {profile.helpfulPoints.map((punto) => (
+                  <li key={punto}>✓ {punto}</li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="rounded-3xl border border-gray-200 p-6 mb-8">
+              <h3 className="font-bold text-xl mb-4 text-black">
+                Te recomendamos mentoras que:
+              </h3>
+
+              <ul className="space-y-3 text-black">
+                {profile.mentorTraits.map((rasgo) => (
+                  <li key={rasgo}>✓ {rasgo}</li>
+                ))}
+              </ul>
+            </div>
+
+            <button
+              className="w-full rounded-2xl bg-[#824BE5] py-4 text-lg font-semibold text-white hover:opacity-90"
+              onClick={() => router.push("/discover")}
+            >
+              Conocer mentoras
+            </button>
+          </>
+        )}
 
       </div>
     </main>

@@ -87,15 +87,7 @@ export default function RoleSelectionPage() {
     if (!selectedRole) return;
     // navega al onboarding del rol, llevando el nombre adelante
     const params = new URLSearchParams({ nombre });
-    if (selectedRole === "mentee") {
-      router.push(`/onboarding?${params.toString()}`);
-      return;
-    }
-
-    if (selectedRole === "mentora") {
-      router.push(`/onboarding/mentor?${params.toString()}`);
-      return;
-    }
+    router.push(`/onboarding/${selectedRole}?${params.toString()}`);
   };
 
   return (
