@@ -29,7 +29,10 @@ export default function HomePage() {
             <IoNotificationsOutline className="text-xl" />
             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-400 rounded-full" />
           </button>
-          <button className="w-10 h-10 rounded-full bg-brand-soft flex items-center justify-center text-brand hover:bg-brand-light transition-colors">
+          <button
+            onClick={() => router.push("/messages")}
+            className="w-10 h-10 rounded-full bg-brand-soft flex items-center justify-center text-brand hover:bg-brand-light transition-colors"
+          >
             <IoChatbubbleOutline className="text-xl" />
           </button>
         </div>
@@ -144,11 +147,17 @@ export default function HomePage() {
           <IoSearchOutline className="text-xl" />
           <span className="text-[10px] font-medium">Explorar</span>
         </button>
-        <button className="flex flex-col items-center gap-0.5 text-gray-400 hover:text-brand transition-colors">
+        <button
+          onClick={() => router.push("/sessions")}
+          className="flex flex-col items-center gap-0.5 text-gray-400 hover:text-brand transition-colors"
+        >
           <IoCalendarOutline className="text-xl" />
           <span className="text-[10px] font-medium">Calendario</span>
         </button>
-        <button className="flex flex-col items-center gap-0.5 text-gray-400 hover:text-brand transition-colors">
+        <button
+          onClick={() => router.push("/profile")}
+          className="flex flex-col items-center gap-0.5 text-gray-400 hover:text-brand transition-colors"
+        >
           <IoPersonOutline className="text-xl" />
           <span className="text-[10px] font-medium">Perfil</span>
         </button>

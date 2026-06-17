@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 type Role = "mentee" | "mentora";
@@ -9,7 +9,7 @@ interface RoleOption {
   id: Role;
   title: string;
   description: string;
-  icon: JSX.Element;
+  icon: ReactNode;
 }
 
 const roles: RoleOption[] = [
@@ -75,7 +75,7 @@ const roles: RoleOption[] = [
   },
 ];
 
-export default function RoleSelectionPage() {
+function RoleSelectionContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
@@ -184,5 +184,13 @@ export default function RoleSelectionPage() {
         </button>
       </div>
     </div>
+  );
+}
+
+export default function RoleSelectionPage() {
+  return (
+    <Suspense>
+      <RoleSelectionContent />
+    </Suspense>
   );
 }

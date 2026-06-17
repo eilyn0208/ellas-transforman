@@ -277,11 +277,17 @@ export default function ExplorePage() {
           <IoSearchOutline className="text-xl" />
           <span className="text-[10px] font-medium">Explorar</span>
         </button>
-        <button className="flex flex-col items-center gap-0.5 text-gray-400 hover:text-brand transition-colors">
+        <button
+          onClick={() => router.push("/sessions")}
+          className="flex flex-col items-center gap-0.5 text-gray-400 hover:text-brand transition-colors"
+        >
           <IoCalendarOutline className="text-xl" />
           <span className="text-[10px] font-medium">Calendario</span>
         </button>
-        <button className="flex flex-col items-center gap-0.5 text-gray-400 hover:text-brand transition-colors">
+        <button
+          onClick={() => router.push("/profile")}
+          className="flex flex-col items-center gap-0.5 text-gray-400 hover:text-brand transition-colors"
+        >
           <IoPersonOutline className="text-xl" />
           <span className="text-[10px] font-medium">Perfil</span>
         </button>

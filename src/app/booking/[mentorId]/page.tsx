@@ -88,7 +88,10 @@ export default function ConnectConfirmationPage({ params }: Props) {
           >
             Agendar sesión
           </PrimaryButton>
-          <button className="w-full border border-gray-200 py-3 rounded-full font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
+          <button
+            onClick={() => router.push("/messages/conv-1")}
+            className="w-full border border-gray-200 py-3 rounded-full font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+          >
             Enviar mensaje
           </button>
           <button
