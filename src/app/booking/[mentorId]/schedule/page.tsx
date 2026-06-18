@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { IoTimeOutline, IoCalendarOutline } from "react-icons/io5";
 import { mentors } from "@/constants/mentors";
 import PrimaryButton from "@/components/PrimaryButton";
+import AppLayout from "@/components/AppLayout";
 
 interface Props {
   params: Promise<{ mentorId: string }>;
@@ -22,22 +23,12 @@ const DAY_NAMES = [
 
 function buildSlots() {
   const today = new Date();
-  const tomorrow = new Date(today);
-  tomorrow.setDate(today.getDate() + 1);
   const dayAfter = new Date(today);
   dayAfter.setDate(today.getDate() + 2);
 
   return [
-    {
-      id: "1",
-      label: `Hoy · 3:30 PM`,
-      icon: "time" as const,
-    },
-    {
-      id: "2",
-      label: `Mañana · 10:00 AM`,
-      icon: "calendar" as const,
-    },
+    { id: "1", label: "Hoy · 3:30 PM", icon: "time" as const },
+    { id: "2", label: "Mañana · 10:00 AM", icon: "calendar" as const },
     {
       id: "3",
       label: `${DAY_NAMES[dayAfter.getDay()]} · 5:00 PM`,
@@ -70,7 +61,7 @@ export default function SchedulePage({ params }: Props) {
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col max-w-md mx-auto">
+    <AppLayout showNav={false} bg="bg-white">
       {/* Header */}
       <header className="flex items-center gap-4 px-5 py-4 border-b border-gray-100 flex-shrink-0">
         <button
@@ -95,7 +86,6 @@ export default function SchedulePage({ params }: Props) {
       </header>
 
       <div className="flex-1 px-5 py-6 flex flex-col gap-6">
-        {/* Section heading */}
         <div>
           <h2 className="font-bold text-base mb-1">Horarios disponibles</h2>
           <p className="text-brand text-xs leading-relaxed">
@@ -103,7 +93,6 @@ export default function SchedulePage({ params }: Props) {
           </p>
         </div>
 
-        {/* Slot list */}
         <div className="flex flex-col gap-3">
           {slots.map((slot) => {
             const isSelected = selectedId === slot.id;
@@ -136,19 +125,17 @@ export default function SchedulePage({ params }: Props) {
           })}
         </div>
 
-        {/* Policy note */}
         <p className="text-gray-400 text-xs leading-relaxed">
           Las sesiones duran 45 minutos. Puedes cancelar hasta 12 horas antes
           sin penalización.
         </p>
 
-        {/* CTA pinned to bottom */}
         <div className="mt-auto pt-4">
           <PrimaryButton onClick={handleConfirm}>
             Confirmar sesión
           </PrimaryButton>
         </div>
       </div>
-    </div>
+    </AppLayout>
   );
 }

@@ -4,19 +4,17 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { ProfileView } from "@/types/profile";
 import { mockMenteeProfile, mockMentorProfile } from "@/constants/profile";
-import {
-  IoChevronBackOutline,
-  IoAddOutline,
-  IoCheckmarkCircle,
-} from "react-icons/io5";
+import { IoAddOutline, IoCheckmarkCircle } from "react-icons/io5";
+import AppHeader from "@/components/AppHeader";
+import AppLayout from "@/components/AppLayout";
+import Badge from "@/components/ui/Badge";
+import ProgressBar from "@/components/ui/ProgressBar";
 
-// TODO: Replace with Supabase auth + profiles table once integrated
 function useProfileData(): { profile: ProfileView; loading: boolean } {
   const [profile, setProfile] = useState<ProfileView>(mockMenteeProfile);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // TODO: fetch from Supabase: supabase.from('profiles').select('*, role:users(role)').eq('user_id', session.user.id).single()
     const storedRole = localStorage.getItem("ellas_role");
     if (storedRole === "mentor" || storedRole === "mentora") {
       setProfile(mockMentorProfile);
@@ -40,56 +38,47 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-brand-bg flex items-center justify-center max-w-md mx-auto">
-        <div className="w-8 h-8 rounded-full border-4 border-brand-soft border-t-brand animate-spin" />
-      </div>
+      <AppLayout>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-full border-4 border-brand-soft border-t-brand animate-spin" />
+        </div>
+      </AppLayout>
     );
   }
 
   const isMentee = profile.role === "mentee";
 
   return (
-    <div className="min-h-screen bg-brand-bg flex flex-col max-w-md mx-auto">
-      {/* Header */}
-      <nav className="bg-white px-5 pt-10 pb-4 flex items-center justify-between shadow-sm">
-        <button
-          onClick={() => router.back()}
-          className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-brand-light transition-colors"
-          aria-label="Volver"
-        >
-          <IoChevronBackOutline className="text-xl text-gray-700" />
-        </button>
-        <div className="flex items-center gap-1.5">
-          <span className="text-brand text-xl">⚡</span>
-          <span className="font-bold text-gray-900 text-base">EllasTransforman</span>
-        </div>
-        <div className="w-9" />
-      </nav>
+    <AppLayout>
+      <AppHeader showBack />
 
-      {/* Scrollable content */}
-      <main className="flex-1 overflow-y-auto pb-32">
+      <main className="flex-1 overflow-y-auto pb-24">
         {/* Photo + name block */}
-        <div className="bg-white px-6 pt-7 pb-5 flex flex-col items-center gap-3">
+        <div className="bg-white px-5 pt-7 pb-5 flex flex-col items-center gap-3">
           <div className="w-24 h-24 rounded-full bg-brand-soft flex items-center justify-center text-4xl border-4 border-white shadow-md select-none">
             {profile.avatar}
           </div>
-          <p className="text-xs text-gray-400">Profile photo</p>
+          <p className="text-xs text-gray-400">Foto de perfil</p>
           <div className="flex gap-3">
             <button className="bg-brand text-white text-xs font-semibold px-5 py-2 rounded-full hover:bg-brand-dark transition-colors">
-              Upload photo
+              Subir foto
             </button>
             <button className="border border-brand text-brand text-xs font-semibold px-5 py-2 rounded-full hover:bg-brand-light transition-colors">
-              Take photo
+              Tomar foto
             </button>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mt-1">{profile.name}</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mt-1">
+            {profile.name}
+          </h1>
         </div>
 
         <div className="px-5 py-4 space-y-4">
           {/* Short bio */}
           <div className="bg-white rounded-2xl p-4 shadow-sm">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-semibold text-gray-700">Short bio</span>
+              <span className="text-sm font-semibold text-gray-700">
+                Descripción
+              </span>
               <span className="text-xs text-gray-400">80–200 chars</span>
             </div>
             <textarea
@@ -101,12 +90,7 @@ export default function ProfilePage() {
             />
             <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-gray-100">
               {profile.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="bg-brand-light text-brand text-xs font-medium px-3 py-1 rounded-full"
-                >
-                  {tag}
-                </span>
+                <Badge key={tag}>{tag}</Badge>
               ))}
             </div>
           </div>
@@ -114,8 +98,10 @@ export default function ProfilePage() {
           {/* Education */}
           <div className="bg-white rounded-2xl p-4 shadow-sm">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-semibold text-gray-700">Education</span>
-              <span className="text-xs text-gray-400">Optional</span>
+              <span className="text-sm font-semibold text-gray-700">
+                Educación
+              </span>
+              <span className="text-xs text-gray-400">Opcional</span>
             </div>
             {profile.education.map((edu) => (
               <div key={edu.id} className="flex items-center gap-3 mb-3">
@@ -139,7 +125,7 @@ export default function ProfilePage() {
               </div>
             ))}
             <button className="text-brand text-xs font-medium hover:underline">
-              + Add another school, program or certificate
+              + Agregar institución o certificado
             </button>
           </div>
 
@@ -150,14 +136,14 @@ export default function ProfilePage() {
                 <div className="flex items-center gap-2">
                   <div className="w-1 h-4 bg-teal-400 rounded-full" />
                   <span className="text-sm font-semibold text-gray-700">
-                    Current Mentors
+                    Mis mentoras
                   </span>
                 </div>
                 <button
                   onClick={() => router.push("/discover")}
                   className="text-brand text-xs font-medium hover:underline"
                 >
-                  See all
+                  Ver todas
                 </button>
               </div>
               <div className="flex gap-4">
@@ -176,7 +162,7 @@ export default function ProfilePage() {
                     {mentor.isVerified && (
                       <span className="text-[10px] bg-teal-50 text-teal-600 font-semibold px-2 py-0.5 rounded-full flex items-center gap-0.5">
                         <IoCheckmarkCircle className="text-xs" />
-                        Verified
+                        Verificada
                       </span>
                     )}
                   </div>
@@ -195,7 +181,7 @@ export default function ProfilePage() {
                     </span>
                   </div>
                   <button className="text-brand text-xs font-medium hover:underline">
-                    See all
+                    Ver todas
                   </button>
                 </div>
                 <div className="flex gap-4">
@@ -214,7 +200,7 @@ export default function ProfilePage() {
                       {mentee.isVerified && (
                         <span className="text-[10px] bg-teal-50 text-teal-600 font-semibold px-2 py-0.5 rounded-full flex items-center gap-0.5">
                           <IoCheckmarkCircle className="text-xs" />
-                          Verified
+                          Verificada
                         </span>
                       )}
                     </div>
@@ -235,12 +221,7 @@ export default function ProfilePage() {
               </div>
               <div className="flex flex-wrap gap-2">
                 {profile.specialties.map((s) => (
-                  <span
-                    key={s}
-                    className="bg-brand-light text-brand text-xs font-medium px-3 py-1.5 rounded-full"
-                  >
-                    {s}
-                  </span>
+                  <Badge key={s}>{s}</Badge>
                 ))}
               </div>
             </div>
@@ -252,23 +233,22 @@ export default function ProfilePage() {
               <div className="flex items-center gap-2">
                 <div className="w-1 h-4 bg-brand rounded-full" />
                 <span className="text-sm font-semibold text-gray-700">
-                  Active Goals
+                  Metas activas
                 </span>
               </div>
               <span className="text-xs text-gray-400">
-                {profile.activeGoal.inProgressCount} in progress
+                {profile.activeGoal.inProgressCount} en progreso
               </span>
             </div>
             <p className="text-sm font-bold text-gray-800 mb-2.5">
               {profile.activeGoal.title}
             </p>
             <div className="flex items-center gap-2 mb-1.5">
-              <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-brand rounded-full transition-all"
-                  style={{ width: `${profile.activeGoal.progressPercent}%` }}
-                />
-              </div>
+              <ProgressBar
+                percent={profile.activeGoal.progressPercent}
+                size="md"
+                className="flex-1"
+              />
               <span className="text-xs font-bold text-brand flex-shrink-0">
                 {profile.activeGoal.progressPercent}%
               </span>
@@ -280,7 +260,7 @@ export default function ProfilePage() {
               onClick={() => router.push("/roadmap")}
               className="text-xs font-semibold text-brand border border-brand px-4 py-2 rounded-full hover:bg-brand-light transition-colors"
             >
-              Open Roadmap
+              Ver Roadmap
             </button>
           </div>
 
@@ -289,7 +269,9 @@ export default function ProfilePage() {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <div className="w-1 h-4 bg-yellow-400 rounded-full" />
-                <span className="text-sm font-semibold text-gray-700">Logros</span>
+                <span className="text-sm font-semibold text-gray-700">
+                  Logros
+                </span>
               </div>
               <span className="text-xs text-gray-400">{profile.updatedLabel}</span>
             </div>
@@ -313,7 +295,7 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Programas actuales / activos */}
+          {/* Programas actuales */}
           <div className="bg-white rounded-2xl p-4 shadow-sm">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
@@ -336,10 +318,12 @@ export default function ProfilePage() {
                     <p className="text-sm font-bold text-gray-800 leading-tight">
                       {prog.title}
                     </p>
-                    <p className="text-xs text-gray-500 mt-0.5">{prog.coachInfo}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {prog.coachInfo}
+                    </p>
                     <div className="flex items-center justify-between mt-2">
                       <span className="text-xs text-gray-400">
-                        {prog.currentLesson} of {prog.totalLessons}
+                        {prog.currentLesson} de {prog.totalLessons}
                       </span>
                       <button className="text-xs font-semibold text-white bg-brand px-4 py-1.5 rounded-full hover:bg-brand-dark transition-colors">
                         Continuar
@@ -356,7 +340,9 @@ export default function ProfilePage() {
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2">
                 <div className="w-1 h-4 bg-brand rounded-full" />
-                <span className="text-sm font-semibold text-gray-700">Comunidad</span>
+                <span className="text-sm font-semibold text-gray-700">
+                  Comunidad
+                </span>
               </div>
               <span className="text-xs text-gray-400">
                 {profile.communityStats.totalLabel} /{" "}
@@ -374,7 +360,9 @@ export default function ProfilePage() {
                 Explorar recursos
               </button>
               <button
-                onClick={() => router.push(isMentee ? "/discover" : "/explore")}
+                onClick={() =>
+                  router.push(isMentee ? "/discover" : "/explore")
+                }
                 className="flex-1 text-xs font-semibold text-white bg-brand py-2.5 rounded-full hover:bg-brand-dark transition-colors"
               >
                 {isMentee ? "Conectar con mentora" : "Ver comunidad"}
@@ -383,32 +371,6 @@ export default function ProfilePage() {
           </div>
         </div>
       </main>
-
-      {/* Bottom action bar */}
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-gray-100 px-5 pt-3 pb-5 z-10">
-        <div className="flex items-center justify-between mb-3">
-          <button className="text-sm text-gray-400 hover:text-gray-600 transition-colors">
-            Ayuda
-          </button>
-          <button
-            onClick={() => router.push("/settings")}
-            className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            Ajustes
-          </button>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => router.push("/home")}
-            className="text-sm text-gray-400 hover:text-gray-600 transition-colors px-2"
-          >
-            Skip
-          </button>
-          <button className="flex-1 bg-brand text-white text-sm font-bold py-3.5 rounded-full hover:bg-brand-dark transition-colors">
-            Save &amp; Continue
-          </button>
-        </div>
-      </div>
-    </div>
+    </AppLayout>
   );
 }

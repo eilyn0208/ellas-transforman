@@ -4,12 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   IoSearchOutline,
-  IoPersonOutline,
-  IoHomeOutline,
-  IoCalendarOutline,
   IoNotificationsOutline,
   IoChatbubbleOutline,
-  IoCompassOutline,
   IoChevronBackOutline,
   IoChevronForwardOutline,
   IoPlayCircleOutline,
@@ -20,8 +16,10 @@ import {
   workshops,
   stories,
 } from "@/constants/explore";
-
-// TODO: Replace mock data with Supabase queries
+import AppHeader from "@/components/AppHeader";
+import AppLayout from "@/components/AppLayout";
+import Badge from "@/components/ui/Badge";
+import Button from "@/components/ui/Button";
 
 export default function ExplorePage() {
   const router = useRouter();
@@ -34,35 +32,30 @@ export default function ExplorePage() {
   const nextStory = () =>
     setStoryIndex((i) => (i + 1) % stories.length);
 
-  return (
-    <div className="min-h-screen bg-brand-bg flex flex-col max-w-md mx-auto">
-      {/* Top navbar */}
-      <nav className="bg-white px-6 pt-10 pb-4 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-1.5">
-          <span className="text-brand text-xl">⚡</span>
-          <span className="font-bold text-gray-900 text-lg">EllasTransforman</span>
-        </div>
-        <div className="flex items-center gap-2.5">
-          <button className="relative w-10 h-10 rounded-full bg-brand-soft flex items-center justify-center text-brand hover:bg-brand-light transition-colors">
-            <IoNotificationsOutline className="text-xl" />
-            <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
-              3
-            </span>
-          </button>
-          <button className="w-10 h-10 rounded-full bg-brand-soft flex items-center justify-center text-brand hover:bg-brand-light transition-colors">
-            <IoChatbubbleOutline className="text-xl" />
-          </button>
-          <div className="w-9 h-9 rounded-full bg-brand flex items-center justify-center text-white font-bold text-sm">
-            TG
-          </div>
-        </div>
-      </nav>
+  const rightSlot = (
+    <>
+      <button className="relative w-10 h-10 rounded-full bg-brand-soft flex items-center justify-center text-brand hover:bg-brand-light transition-colors">
+        <IoNotificationsOutline className="text-xl" />
+        <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+          3
+        </span>
+      </button>
+      <button
+        onClick={() => router.push("/messages")}
+        className="w-10 h-10 rounded-full bg-brand-soft flex items-center justify-center text-brand hover:bg-brand-light transition-colors"
+      >
+        <IoChatbubbleOutline className="text-xl" />
+      </button>
+    </>
+  );
 
-      {/* Scrollable content */}
-      <main className="flex-1 overflow-y-auto px-6 py-5 space-y-5 pb-24">
-        {/* Title */}
+  return (
+    <AppLayout>
+      <AppHeader rightSlot={rightSlot} />
+
+      <main className="flex-1 overflow-y-auto px-5 py-5 space-y-5 pb-24">
         <h1 className="text-2xl font-bold text-brand leading-snug">
-          Discover mentors,<br />workshops &amp; cohorts
+          Descubre mentoras,<br />workshops &amp; eventos
         </h1>
 
         {/* Search bar */}
@@ -73,7 +66,7 @@ export default function ExplorePage() {
           />
           <input
             type="text"
-            placeholder="Search mentors, workshops or topics"
+            placeholder="Busca mentoras, workshops o temas"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-9 pr-4 py-2.5 rounded-full border border-gray-200 bg-white text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand/20"
@@ -81,7 +74,7 @@ export default function ExplorePage() {
         </div>
 
         {/* Filter chips */}
-        <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+        <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
           {EXPLORE_FILTER_TAGS.map((tag) => (
             <button
               key={tag}
@@ -139,20 +132,15 @@ export default function ExplorePage() {
                     <div className="flex items-center justify-between mt-2.5">
                       <div className="flex gap-1.5 flex-wrap">
                         {mentor.tags.slice(0, 2).map((tag) => (
-                          <span
-                            key={tag}
-                            className="text-brand text-xs bg-brand-light px-2.5 py-0.5 rounded-full font-medium"
-                          >
-                            {tag}
-                          </span>
+                          <Badge key={tag}>{tag}</Badge>
                         ))}
                       </div>
-                      <button
+                      <Button
+                        size="sm"
                         onClick={() => router.push(`/booking/${mentor.id}`)}
-                        className="bg-brand text-white text-xs px-4 py-1.5 rounded-full font-semibold hover:bg-brand-dark transition-colors flex-shrink-0"
                       >
                         Conectar
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -165,10 +153,10 @@ export default function ExplorePage() {
         <section>
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-bold text-gray-900 text-base">
-              Workshops &amp; Events
+              Workshops &amp; Eventos
             </h2>
             <button className="text-brand text-sm font-medium hover:underline">
-              View calendar
+              Ver calendario
             </button>
           </div>
 
@@ -192,11 +180,9 @@ export default function ExplorePage() {
                   </div>
                   <div className="flex items-center justify-between mt-2">
                     <span className="text-gray-500 text-xs">
-                      Seats: {workshop.seats}
+                      Cupos: {workshop.seats}
                     </span>
-                    <button className="bg-brand text-white text-xs px-4 py-1.5 rounded-full font-semibold hover:bg-brand-dark transition-colors">
-                      Join
-                    </button>
+                    <Button size="sm">Unirme</Button>
                   </div>
                 </div>
               </div>
@@ -215,7 +201,10 @@ export default function ExplorePage() {
                 {stories[storyIndex].emoji}
               </span>
               <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                <IoPlayCircleOutline size={60} className="text-white drop-shadow-lg" />
+                <IoPlayCircleOutline
+                  size={60}
+                  className="text-white drop-shadow-lg"
+                />
               </div>
             </div>
 
@@ -242,7 +231,6 @@ export default function ExplorePage() {
             {stories[storyIndex].authorName}
           </p>
 
-          {/* Dots indicator */}
           <div className="flex justify-center gap-1.5 mt-3">
             {stories.map((_, i) => (
               <button
@@ -256,42 +244,6 @@ export default function ExplorePage() {
           </div>
         </section>
       </main>
-
-      {/* Bottom navbar */}
-      <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-gray-100 px-4 py-3 flex items-center justify-around z-10">
-        <button
-          onClick={() => router.push("/home")}
-          className="flex flex-col items-center gap-0.5 text-gray-400 hover:text-brand transition-colors"
-        >
-          <IoHomeOutline className="text-xl" />
-          <span className="text-[10px] font-medium">Inicio</span>
-        </button>
-        <button
-          onClick={() => router.push("/roadmap")}
-          className="flex flex-col items-center gap-0.5 text-gray-400 hover:text-brand transition-colors"
-        >
-          <IoCompassOutline className="text-xl" />
-          <span className="text-[10px] font-medium">Ruta</span>
-        </button>
-        <button className="flex flex-col items-center gap-0.5 text-brand">
-          <IoSearchOutline className="text-xl" />
-          <span className="text-[10px] font-medium">Explorar</span>
-        </button>
-        <button
-          onClick={() => router.push("/sessions")}
-          className="flex flex-col items-center gap-0.5 text-gray-400 hover:text-brand transition-colors"
-        >
-          <IoCalendarOutline className="text-xl" />
-          <span className="text-[10px] font-medium">Calendario</span>
-        </button>
-        <button
-          onClick={() => router.push("/profile")}
-          className="flex flex-col items-center gap-0.5 text-gray-400 hover:text-brand transition-colors"
-        >
-          <IoPersonOutline className="text-xl" />
-          <span className="text-[10px] font-medium">Perfil</span>
-        </button>
-      </nav>
-    </div>
+    </AppLayout>
   );
 }

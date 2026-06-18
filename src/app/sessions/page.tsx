@@ -3,11 +3,6 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
-  IoHomeOutline,
-  IoPersonOutline,
-  IoCalendarOutline,
-  IoCompassOutline,
-  IoSearchOutline,
   IoFunnelOutline,
   IoLinkOutline,
   IoLocationOutline,
@@ -20,8 +15,8 @@ import {
   weekStats,
   SESSION_FILTER_TYPES,
 } from "@/constants/sessions";
-
-// TODO: Replace mock data with Supabase queries when integrating
+import AppHeader from "@/components/AppHeader";
+import AppLayout from "@/components/AppLayout";
 
 const DAY_LABELS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 const TIMELINE_START = 8;
@@ -64,7 +59,6 @@ export default function SessionsPage() {
   const router = useRouter();
   const weekDays = useMemo(() => getWeekDays(new Date()), []);
 
-  // Default to Wednesday (2) so the demo day has events; fall back to today
   const todayIndex = weekDays.find((d) => d.isToday)?.dayOfWeek;
   const [selectedDow, setSelectedDow] = useState<number>(todayIndex ?? 2);
   const [showFilter, setShowFilter] = useState(false);
@@ -86,7 +80,6 @@ export default function SessionsPage() {
     (g) => g.dayOfWeek === selectedDow && activeFilters.has("goals")
   );
 
-  // Build flat timeline: hour markers + event/goal cards in order
   const timeline = useMemo(() => {
     type Slot =
       | { kind: "hour"; hour: number }
@@ -102,7 +95,6 @@ export default function SessionsPage() {
       const atHour = dayEvents.filter((e) => parseInt(e.startTime) === h);
       atHour.forEach((e) => slots.push({ kind: "session", event: e }));
 
-      // Goals appear after noon if there are no events at 13:00
       if (
         h === 12 &&
         dayGoals.length > 0 &&
@@ -114,7 +106,6 @@ export default function SessionsPage() {
       }
     }
 
-    // Goals not yet inserted (e.g., no events around noon) → append at end
     if (!goalsInserted && dayGoals.length > 0) {
       dayGoals.forEach((g) => slots.push({ kind: "goal", goal: g }));
     }
@@ -126,24 +117,18 @@ export default function SessionsPage() {
   const hasContent = dayEvents.length > 0 || dayGoals.length > 0;
 
   return (
-    <div className="min-h-screen bg-brand-bg flex flex-col max-w-md mx-auto">
-      {/* Sticky header */}
-      <header className="sticky top-0 z-10 bg-white px-5 pt-10 pb-4 shadow-sm">
-        {/* Title row */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-1.5">
-            <span className="text-brand text-xl">⚡</span>
-            <span className="font-bold text-gray-900 text-base">
-              EllasTransforman
+    <AppLayout>
+      {/* Sticky header: AppHeader + week strip */}
+      <div className="sticky top-0 z-10 bg-white shadow-sm">
+        <AppHeader
+          shadow={false}
+          rightSlot={
+            <span className="text-sm font-semibold text-gray-500">
+              Esta semana
             </span>
-          </div>
-          <span className="text-sm font-semibold text-gray-500">
-            Esta semana
-          </span>
-        </div>
-
-        {/* Week strip */}
-        <div className="flex justify-between gap-1">
+          }
+        />
+        <div className="flex justify-between gap-1 px-5 pb-4">
           {weekDays.map((day) => (
             <button
               key={day.dayOfWeek}
@@ -161,12 +146,12 @@ export default function SessionsPage() {
             </button>
           ))}
         </div>
-      </header>
+      </div>
 
       {/* Scrollable content */}
       <main className="flex-1 overflow-y-auto pb-[132px]">
         {/* Stats row */}
-        <div className="px-4 pt-4 pb-3 grid grid-cols-3 gap-2">
+        <div className="px-5 pt-4 pb-3 grid grid-cols-3 gap-2">
           <StatCard
             main={String(weekStats.sessionsCount)}
             label="esta semana"
@@ -185,7 +170,7 @@ export default function SessionsPage() {
         </div>
 
         {/* Timeline */}
-        <div className="px-4">
+        <div className="px-5">
           {hasContent ? (
             timeline.map((slot, i) => {
               if (slot.kind === "hour") {
@@ -326,7 +311,7 @@ export default function SessionsPage() {
             className="fixed inset-0 bg-black/30 z-20"
             onClick={() => setShowFilter(false)}
           />
-          <div className="fixed bottom-16 left-1/2 -translate-x-1/2 w-full max-w-md bg-white rounded-t-3xl px-6 pt-5 pb-8 z-30 shadow-xl">
+          <div className="fixed bottom-16 left-1/2 -translate-x-1/2 w-full max-w-md bg-white rounded-t-3xl px-5 pt-5 pb-8 z-30 shadow-xl">
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
             <p className="font-bold text-gray-900 text-base mb-4">
               Filtrar por tipo
@@ -357,7 +342,7 @@ export default function SessionsPage() {
       )}
 
       {/* Action bar — sits above the bottom nav */}
-      <div className="fixed bottom-16 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-gray-100 px-6 py-3 flex items-center justify-between z-10">
+      <div className="fixed bottom-16 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-gray-100 px-5 py-3 flex items-center justify-between z-10">
         <button className="text-sm font-semibold text-gray-400 hover:text-brand transition-colors">
           Vista día
         </button>
@@ -369,43 +354,7 @@ export default function SessionsPage() {
           Filtrar
         </button>
       </div>
-
-      {/* Bottom navbar */}
-      <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-gray-100 px-4 py-3 flex items-center justify-around z-10">
-        <button
-          onClick={() => router.push("/home")}
-          className="flex flex-col items-center gap-0.5 text-gray-400 hover:text-brand transition-colors"
-        >
-          <IoHomeOutline className="text-xl" />
-          <span className="text-[10px] font-medium">Inicio</span>
-        </button>
-        <button
-          onClick={() => router.push("/roadmap")}
-          className="flex flex-col items-center gap-0.5 text-gray-400 hover:text-brand transition-colors"
-        >
-          <IoCompassOutline className="text-xl" />
-          <span className="text-[10px] font-medium">Ruta</span>
-        </button>
-        <button
-          onClick={() => router.push("/explore")}
-          className="flex flex-col items-center gap-0.5 text-gray-400 hover:text-brand transition-colors"
-        >
-          <IoSearchOutline className="text-xl" />
-          <span className="text-[10px] font-medium">Explorar</span>
-        </button>
-        <button className="flex flex-col items-center gap-0.5 text-brand">
-          <IoCalendarOutline className="text-xl" />
-          <span className="text-[10px] font-medium">Calendario</span>
-        </button>
-        <button
-          onClick={() => router.push("/profile")}
-          className="flex flex-col items-center gap-0.5 text-gray-400 hover:text-brand transition-colors"
-        >
-          <IoPersonOutline className="text-xl" />
-          <span className="text-[10px] font-medium">Perfil</span>
-        </button>
-      </nav>
-    </div>
+    </AppLayout>
   );
 }
 

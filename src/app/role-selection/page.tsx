@@ -85,9 +85,9 @@ function RoleSelectionContent() {
 
   const handleContinue = () => {
     if (!selectedRole) return;
-    // navega al onboarding del rol, llevando el nombre adelante
     const params = new URLSearchParams({ nombre });
-    router.push(`/onboarding/${selectedRole}?${params.toString()}`);
+    const path = selectedRole === "mentora" ? "/onboarding/mentor" : "/onboarding";
+    router.push(`${path}?${params.toString()}`);
   };
 
   return (

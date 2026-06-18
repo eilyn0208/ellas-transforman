@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
-  IoChevronBackOutline,
   IoNotificationsOutline,
   IoChatbubbleOutline,
 } from "react-icons/io5";
-import { mockConversations } from "@/constants/messages";
 import type { Conversation } from "@/types/messages";
+import AppHeader from "@/components/AppHeader";
+import AppLayout from "@/components/AppLayout";
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -23,50 +23,68 @@ function timeAgo(iso: string): string {
 export default function MessagesPage() {
   const router = useRouter();
   const [role, setRole] = useState<string>("mentee");
+  const [userId, setUserId] = useState<string>("");
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const stored = localStorage.getItem("ellas_role") ?? "mentee";
-    setRole(stored);
-    // TODO: Replace with Supabase realtime subscription
-    // const channel = supabase
-    //   .channel('conversations')
-    //   .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations' }, handler)
-    //   .subscribe()
-    setConversations(mockConversations);
+    const storedRole = localStorage.getItem("ellas_role") ?? "mentee";
+    const uid = storedRole === "mentor" ? "demo-mentor" : "demo-mentee";
+    setRole(storedRole);
+    setUserId(uid);
+
+    // Register user with server (update onboarding answers if available)
+    let answers: Record<string, unknown> = {};
+    try {
+      const key = storedRole === "mentor" ? "ellas_mentor_answers" : "ellas_mentee_answers";
+      answers = JSON.parse(localStorage.getItem(key) ?? "{}");
+    } catch { /* ignore */ }
+
+    fetch("/api/user/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: uid, role: storedRole, onboardingAnswers: answers }),
+    }).catch(console.error);
   }, []);
+
+  const fetchConversations = useCallback(async () => {
+    if (!userId) return;
+    try {
+      const res = await fetch(`/api/conversations?userId=${userId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setConversations(data.conversations ?? []);
+      }
+    } catch { /* ignore */ } finally {
+      setLoading(false);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId) return;
+    fetchConversations();
+    const interval = setInterval(fetchConversations, 3000);
+    return () => clearInterval(interval);
+  }, [userId, fetchConversations]);
 
   const isMentor = role === "mentor";
 
+  const rightSlot = (
+    <>
+      <button className="relative w-9 h-9 rounded-full bg-brand-soft flex items-center justify-center text-brand hover:bg-brand-light transition-colors">
+        <IoNotificationsOutline className="text-lg" />
+        <span className="absolute top-1 right-1 w-2 h-2 bg-red-400 rounded-full" />
+      </button>
+      <button className="w-9 h-9 rounded-full bg-brand flex items-center justify-center text-white">
+        <IoChatbubbleOutline className="text-lg" />
+      </button>
+    </>
+  );
+
   return (
-    <div className="min-h-screen bg-brand-bg flex flex-col max-w-md mx-auto">
-      {/* Header */}
-      <nav className="bg-white px-5 pt-10 pb-3 flex items-center justify-between shadow-sm">
-        <button
-          onClick={() => router.back()}
-          className="w-9 h-9 flex items-center justify-center text-gray-600 hover:text-brand transition-colors"
-          aria-label="Volver"
-        >
-          <IoChevronBackOutline className="text-xl" />
-        </button>
+    <AppLayout showNav={false}>
+      <AppHeader showBack rightSlot={rightSlot} />
 
-        <div className="flex items-center gap-1.5">
-          <span className="text-brand text-lg">⚡</span>
-          <span className="font-bold text-gray-900 text-base">EllasTransforman</span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button className="relative w-9 h-9 rounded-full bg-brand-soft flex items-center justify-center text-brand hover:bg-brand-light transition-colors">
-            <IoNotificationsOutline className="text-lg" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-400 rounded-full" />
-          </button>
-          <button className="w-9 h-9 rounded-full bg-brand flex items-center justify-center text-white">
-            <IoChatbubbleOutline className="text-lg" />
-          </button>
-        </div>
-      </nav>
-
-      {/* Title */}
       <div className="px-5 pt-5 pb-2">
         <h1 className="text-lg font-bold text-gray-900">
           {isMentor ? "Mis Mentees" : "Mis Mentoras"}
@@ -78,9 +96,14 @@ export default function MessagesPage() {
         </p>
       </div>
 
-      {/* Conversations */}
-      <main className="flex-1 px-4 py-2 space-y-2">
-        {conversations.length === 0 && (
+      <main className="flex-1 px-5 py-2 space-y-2 pb-6">
+        {loading && (
+          <div className="flex items-center justify-center py-16">
+            <div className="w-6 h-6 rounded-full border-4 border-brand-soft border-t-brand animate-spin" />
+          </div>
+        )}
+
+        {!loading && conversations.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 gap-3">
             <span className="text-4xl">💬</span>
             <p className="text-gray-400 text-sm text-center">
@@ -108,7 +131,6 @@ export default function MessagesPage() {
               onClick={() => router.push(`/messages/${conv.id}`)}
               className="w-full bg-white rounded-2xl px-4 py-3.5 flex items-center gap-3 shadow-sm hover:shadow-md transition-shadow text-left"
             >
-              {/* Avatar */}
               <div className="relative flex-shrink-0">
                 <div className="w-12 h-12 rounded-full bg-brand-soft flex items-center justify-center text-2xl">
                   {otherAvatar}
@@ -118,7 +140,6 @@ export default function MessagesPage() {
                 )}
               </div>
 
-              {/* Info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-0.5">
                   <p className="font-semibold text-sm text-gray-900 truncate">
@@ -134,7 +155,6 @@ export default function MessagesPage() {
                 </p>
               </div>
 
-              {/* Unread badge */}
               {conv.unreadCount > 0 && (
                 <div className="w-5 h-5 rounded-full bg-brand flex items-center justify-center flex-shrink-0">
                   <span className="text-white text-[10px] font-bold">
@@ -146,6 +166,6 @@ export default function MessagesPage() {
           );
         })}
       </main>
-    </div>
+    </AppLayout>
   );
 }

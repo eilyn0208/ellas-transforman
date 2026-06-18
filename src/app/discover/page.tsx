@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { type Mentor, mentors } from "@/constants/mentors";
+import AppLayout from "@/components/AppLayout";
 
 const SWIPE_THRESHOLD = 120;
 const ROTATION_FACTOR = 0.08;
@@ -80,8 +81,8 @@ export default function DiscoverPage() {
   const nopeOpacity = Math.min(Math.max(-position.x / SWIPE_THRESHOLD, 0), 1);
 
   return (
-    <main className="min-h-screen bg-white p-6 flex items-center justify-center">
-      <div className="max-w-md w-full">
+    <AppLayout showNav={false} bg="bg-white">
+      <main className="flex-1 px-6 py-6 flex flex-col justify-center">
         <h1 className="text-3xl font-bold mb-6 text-center">
           Mentoras para ti 💜
         </h1>
@@ -100,7 +101,7 @@ export default function DiscoverPage() {
 
             <button
               onClick={handleReiniciar}
-              className="w-full rounded-2xl bg-[#824BE5] py-4 text-white font-semibold hover:opacity-90"
+              className="w-full rounded-2xl bg-brand py-4 text-white font-semibold hover:opacity-90"
             >
               Volver a empezar
             </button>
@@ -131,7 +132,7 @@ export default function DiscoverPage() {
                 {/* Sello CONECTAR */}
                 <div
                   style={{ opacity: likeOpacity }}
-                  className="pointer-events-none absolute top-6 left-6 z-10 -rotate-12 rounded-xl border-4 border-[#824BE5] px-3 py-1 text-2xl font-extrabold text-[#824BE5]"
+                  className="pointer-events-none absolute top-6 left-6 z-10 -rotate-12 rounded-xl border-4 border-brand px-3 py-1 text-2xl font-extrabold text-brand"
                 >
                   CONECTAR
                 </div>
@@ -158,32 +159,32 @@ export default function DiscoverPage() {
 
               <button
                 onClick={() => advance("right", current)}
-                className="flex-1 rounded-2xl bg-[#824BE5] py-4 text-white font-semibold hover:opacity-90"
+                className="flex-1 rounded-2xl bg-brand py-4 text-white font-semibold hover:opacity-90"
               >
                 Conectar 💜
               </button>
             </div>
 
-            <p className="mt-4 text-center text-sm text-[#909090]">
+            <p className="mt-4 text-center text-sm text-gray-400">
               Desliza la carta a la izquierda para omitir o a la derecha para conectar
             </p>
           </>
         )}
-      </div>
-    </main>
+      </main>
+    </AppLayout>
   );
 }
 
 function MentorCardContent({ mentor }: { mentor: Mentor }) {
   return (
     <div className="flex h-full flex-col p-6">
-      <div className="h-56 rounded-2xl bg-[#DACDF2] mb-6 flex items-center justify-center text-6xl">
+      <div className="h-56 rounded-2xl bg-brand-soft mb-6 flex items-center justify-center text-6xl">
         {mentor.avatar}
       </div>
 
       <h2 className="text-2xl font-bold">{mentor.name}</h2>
 
-      <p className="text-[#824BE5] font-semibold">{mentor.role}</p>
+      <p className="text-brand font-semibold">{mentor.role}</p>
 
       <p className="text-gray-500 mb-4">{mentor.company}</p>
 
@@ -193,7 +194,7 @@ function MentorCardContent({ mentor }: { mentor: Mentor }) {
         {mentor.tags.map((tag) => (
           <span
             key={tag}
-            className="rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-black"
+            className="rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-800"
           >
             {tag}
           </span>

@@ -1,19 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   IoCheckmark,
   IoLockClosed,
   IoFlag,
   IoBulb,
-  IoArrowBack,
   IoShareSocial,
   IoPersonCircleOutline,
 } from "react-icons/io5";
 import type { Milestone, MilestoneStatus, Roadmap } from "@/types/roadmap";
-
-// ─── Círculo de progreso SVG ────────────────────────────────────────────────
+import AppHeader from "@/components/AppHeader";
+import AppLayout from "@/components/AppLayout";
 
 function ProgressCircle({ percent }: { percent: number }) {
   const r = 28;
@@ -41,8 +39,6 @@ function ProgressCircle({ percent }: { percent: number }) {
     </div>
   );
 }
-
-// ─── Icono de status ────────────────────────────────────────────────────────
 
 function StatusIcon({ status }: { status: MilestoneStatus }) {
   if (status === "completed") {
@@ -80,8 +76,6 @@ function StatusIcon({ status }: { status: MilestoneStatus }) {
   );
 }
 
-// ─── Badge de status ────────────────────────────────────────────────────────
-
 const STATUS_LABELS: Record<MilestoneStatus, { label: string; className: string }> = {
   completed: { label: "Completado", className: "bg-green-100 text-green-700" },
   "in-progress": { label: "En progreso", className: "bg-brand-light text-brand" },
@@ -98,8 +92,6 @@ function StatusBadge({ status }: { status: MilestoneStatus }) {
     </span>
   );
 }
-
-// ─── Botón CTA por status ───────────────────────────────────────────────────
 
 function MilestoneCTA({ status }: { status: MilestoneStatus }) {
   const ctas: Partial<Record<MilestoneStatus, { label: string; variant: string }>> = {
@@ -122,42 +114,50 @@ function MilestoneCTA({ status }: { status: MilestoneStatus }) {
   );
 }
 
-// ─── Tarjeta de milestone ───────────────────────────────────────────────────
-
 function MilestoneCard({ milestone }: { milestone: Milestone }) {
   const isLocked = milestone.status === "locked";
 
   return (
-    <div
-      className={`bg-white rounded-2xl p-4 shadow-sm flex gap-3 ${isLocked ? "opacity-60" : ""}`}
-    >
+    <div className={`bg-white rounded-2xl p-4 shadow-sm flex gap-3 ${isLocked ? "opacity-60" : ""}`}>
       <StatusIcon status={milestone.status} />
 
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2 mb-1">
-          <h3 className="font-bold text-sm text-gray-900 leading-snug">{milestone.title}</h3>
+          <h3 className="font-bold text-sm text-gray-900 leading-snug">
+            {milestone.title}
+          </h3>
           <StatusBadge status={milestone.status} />
         </div>
 
-        <p className="text-xs text-gray-500 leading-relaxed mb-2">{milestone.description}</p>
+        <p className="text-xs text-gray-500 leading-relaxed mb-2">
+          {milestone.description}
+        </p>
 
         {milestone.mentorName && (
           <div className="flex items-center gap-1.5 mb-2">
             <IoPersonCircleOutline className="text-gray-400 text-base flex-shrink-0" />
-            <span className="text-xs text-gray-500">Mentora: {milestone.mentorName}</span>
+            <span className="text-xs text-gray-500">
+              Mentora: {milestone.mentorName}
+            </span>
           </div>
         )}
 
         {milestone.sessionInfo && (
-          <p className="text-xs text-brand font-medium mb-2">{milestone.sessionInfo}</p>
+          <p className="text-xs text-brand font-medium mb-2">
+            {milestone.sessionInfo}
+          </p>
         )}
 
         {milestone.requiresInfo && (
-          <p className="text-xs text-gray-400 italic mb-2">{milestone.requiresInfo}</p>
+          <p className="text-xs text-gray-400 italic mb-2">
+            {milestone.requiresInfo}
+          </p>
         )}
 
         {milestone.targetInfo && (
-          <p className="text-xs text-blue-600 font-medium mb-2">{milestone.targetInfo}</p>
+          <p className="text-xs text-blue-600 font-medium mb-2">
+            {milestone.targetInfo}
+          </p>
         )}
 
         {milestone.estimatedTime && (
@@ -172,13 +172,10 @@ function MilestoneCard({ milestone }: { milestone: Milestone }) {
   );
 }
 
-// ─── Página principal ────────────────────────────────────────────────────────
-
-// TODO(supabase): reemplazar por la meta profesional real del perfil del usuario
-const MOCK_PROFESSIONAL_GOAL = "Quiero convertirme en Product Manager en una startup de tecnología";
+const MOCK_PROFESSIONAL_GOAL =
+  "Quiero convertirme en Product Manager en una startup de tecnología";
 
 export default function RoadmapPage() {
-  const router = useRouter();
   const [roadmap, setRoadmap] = useState<Roadmap | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -188,16 +185,12 @@ export default function RoadmapPage() {
     setError(false);
 
     try {
-      // TODO(supabase): obtener la meta profesional del usuario autenticado
-      // const goal = await getUserProfessionalGoal(userId);
-      const goal = MOCK_PROFESSIONAL_GOAL;
-
       const res = await fetch("/api/roadmap", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          professionalGoal: goal,
-          useMock: true, // TODO(gemini): cambiar a false cuando Gemini esté integrado
+          professionalGoal: MOCK_PROFESSIONAL_GOAL,
+          useMock: true,
         }),
       });
 
@@ -218,32 +211,24 @@ export default function RoadmapPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-brand-bg flex flex-col max-w-md mx-auto">
-      {/* Header */}
-      <nav className="bg-white px-6 pt-10 pb-4 flex items-center justify-between shadow-sm">
-        <button
-          onClick={() => router.back()}
-          className="w-9 h-9 rounded-full bg-brand-soft flex items-center justify-center text-brand hover:bg-brand-light transition-colors"
-        >
-          <IoArrowBack className="text-lg" />
-        </button>
-        <span className="text-sm font-semibold text-gray-700">Roadmap</span>
-        <div className="w-9 h-9" />
-      </nav>
+    <AppLayout>
+      <AppHeader showBack title="Roadmap" />
 
-      <main className="flex-1 px-5 py-5 space-y-5 overflow-y-auto pb-10">
-        {/* Estado de carga */}
+      <main className="flex-1 px-5 py-5 space-y-5 overflow-y-auto pb-24">
         {loading && (
           <div className="py-20 flex flex-col items-center gap-4">
             <div className="h-10 w-10 animate-spin rounded-full border-4 border-brand-soft border-t-brand" />
-            <p className="text-sm text-gray-500">Cargando tu ruta de crecimiento...</p>
+            <p className="text-sm text-gray-500">
+              Cargando tu ruta de crecimiento...
+            </p>
           </div>
         )}
 
-        {/* Estado de error */}
         {!loading && error && (
           <div className="py-20 flex flex-col items-center gap-4 text-center">
-            <p className="text-gray-500 text-sm">No pudimos cargar tu roadmap.</p>
+            <p className="text-gray-500 text-sm">
+              No pudimos cargar tu roadmap.
+            </p>
             <button
               onClick={fetchRoadmap}
               className="px-5 py-2.5 bg-brand text-white text-sm font-semibold rounded-full hover:opacity-90"
@@ -253,11 +238,11 @@ export default function RoadmapPage() {
           </div>
         )}
 
-        {/* Contenido */}
         {!loading && !error && roadmap && (
           <>
-            {/* Título */}
-            <h1 className="text-2xl font-bold text-gray-900">Tu Ruta de Crecimiento</h1>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Tu Ruta de Crecimiento
+            </h1>
 
             {/* Tarjeta de progreso */}
             <div className="bg-white rounded-2xl p-5 shadow-sm">
@@ -300,7 +285,9 @@ export default function RoadmapPage() {
                 <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
                   Próximas acciones
                 </h2>
-                <span className="text-xs text-brand font-semibold">Enfocarte</span>
+                <span className="text-xs text-brand font-semibold">
+                  Enfocarte
+                </span>
               </div>
 
               <div className="space-y-2">
@@ -328,6 +315,6 @@ export default function RoadmapPage() {
           </>
         )}
       </main>
-    </div>
+    </AppLayout>
   );
 }

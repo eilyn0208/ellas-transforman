@@ -75,3 +75,14 @@ export interface CannedReply {
   variant?: "primary" | "ghost";
   hasCheckbox?: boolean;
 }
+
+export interface MentorSummary {
+  mentorId: string;
+  profileTitle: string;
+  description: string;
+  specialties: string[];
+  mentoringAreas: string[];
+  mentoringStyle: string;
+  isAiGenerated: boolean;
+  generatedAt: string;
+}

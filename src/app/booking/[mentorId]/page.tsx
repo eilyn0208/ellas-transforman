@@ -4,6 +4,7 @@ import { use } from "react";
 import { useRouter } from "next/navigation";
 import { mentors } from "@/constants/mentors";
 import PrimaryButton from "@/components/PrimaryButton";
+import AppLayout from "@/components/AppLayout";
 
 interface Props {
   params: Promise<{ mentorId: string }>;
@@ -22,7 +23,7 @@ export default function ConnectConfirmationPage({ params }: Props) {
   const firstName = mentor.name.split(" ")[0];
 
   return (
-    <div className="min-h-screen bg-[#3d3d3d] flex flex-col">
+    <AppLayout showNav={false} bg="bg-gray-800">
       {/* Top nav */}
       <header className="flex items-center justify-between px-5 py-4 flex-shrink-0">
         <button
@@ -46,13 +47,13 @@ export default function ConnectConfirmationPage({ params }: Props) {
       </header>
 
       {/* Mentor name on dark bg */}
-      <div className="px-6 pt-1 pb-5">
+      <div className="px-5 pt-1 pb-5">
         <h1 className="text-white text-2xl font-bold">{mentor.name}</h1>
       </div>
 
       {/* White card */}
       <div className="flex-1 mx-4 mb-6 bg-white rounded-3xl px-8 pb-8 pt-2 flex flex-col items-center">
-        {/* Purple checkmark badge — float above card edge */}
+        {/* Purple checkmark badge */}
         <div className="w-14 h-14 rounded-full bg-brand flex items-center justify-center -mt-7 shadow-lg mb-5 z-10">
           <svg
             width="26"
@@ -102,6 +103,6 @@ export default function ConnectConfirmationPage({ params }: Props) {
           </button>
         </div>
       </div>
-    </div>
+    </AppLayout>
   );
 }

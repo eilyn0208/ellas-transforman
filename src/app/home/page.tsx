@@ -1,167 +1,700 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { mentors } from "@/constants/mentors";
 import {
-  IoSearchOutline,
-  IoPersonOutline,
-  IoHomeOutline,
-  IoCalendarOutline,
   IoNotificationsOutline,
   IoChatbubbleOutline,
-  IoCompassOutline,
+  IoCalendarOutline,
+  IoTimeOutline,
+  IoLocationOutline,
+  IoFlash,
+  IoChevronForward,
+  IoCheckmarkCircle,
+  IoEllipseOutline,
+  IoPeopleOutline,
+  IoSparklesOutline,
+  IoTrophyOutline,
+  IoHeartOutline,
 } from "react-icons/io5";
+import AppHeader from "@/components/AppHeader";
+import AppLayout from "@/components/AppLayout";
+import { mockMenteeDashboard, mockMentorDashboard } from "@/constants/home";
+import type {
+  MenteeDashboardData,
+  MentorDashboardData,
+  ActiveGoalCard,
+  MenteeProgressCard,
+} from "@/types/home";
 
-export default function HomePage() {
-  const router = useRouter();
-  const featured = mentors.slice(0, 3);
+// ─── Shared sub-components ─────────────────────────────────────────────────
+
+function Sparkline({ data, color = "#824be5" }: { data: number[]; color?: string }) {
+  const W = 300;
+  const H = 56;
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+
+  const pts = data.map((v, i) => ({
+    x: (i / (data.length - 1)) * W,
+    y: H - ((v - min) / range) * (H * 0.85),
+  }));
+
+  const line = pts.reduce(
+    (d, p, i) => (i === 0 ? `M ${p.x} ${p.y}` : `${d} L ${p.x} ${p.y}`),
+    ""
+  );
+  const area = `${line} L ${W} ${H} L 0 ${H} Z`;
+  const gradId = `sg-${color.replace("#", "")}`;
 
   return (
-    <div className="min-h-screen bg-brand-bg flex flex-col max-w-md mx-auto">
-      {/* Top navbar */}
-      <nav className="bg-white px-6 pt-10 pb-3 flex items-center justify-between shadow-sm">
-        <div>
-          <p className="text-sm text-gray-400">Bienvenida de nuevo</p>
-          <h1 className="text-xl font-bold text-gray-900">Ellas Transforman</h1>
-        </div>
-        <div className="flex items-center gap-3">
-          <button className="w-10 h-10 rounded-full bg-brand-soft flex items-center justify-center text-brand hover:bg-brand-light transition-colors relative">
-            <IoNotificationsOutline className="text-xl" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-400 rounded-full" />
-          </button>
-          <button
-            onClick={() => router.push("/messages")}
-            className="w-10 h-10 rounded-full bg-brand-soft flex items-center justify-center text-brand hover:bg-brand-light transition-colors"
-          >
-            <IoChatbubbleOutline className="text-xl" />
-          </button>
-        </div>
-      </nav>
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-14" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.25" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={area} fill={`url(#${gradId})`} />
+      <path d={line} stroke={color} strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      {pts.map((p, i) => (
+        <circle key={i} cx={p.x} cy={p.y} r="3.5" fill={color} />
+      ))}
+    </svg>
+  );
+}
 
-      <main className="flex-1 px-6 py-6 space-y-6">
-        {/* Banner CTA */}
-        <div className="bg-brand rounded-2xl p-5 flex items-center justify-between">
-          <div>
-            <p className="text-white font-bold text-base mb-1">
-              Encuentra tu mentora ideal
-            </p>
-            <p className="text-white/80 text-xs leading-relaxed">
-              Conecta con mujeres referentes en tecnología
-            </p>
-          </div>
-          <button
-            onClick={() => router.push("/discover")}
-            className="bg-white text-brand text-xs font-bold px-4 py-2 rounded-full flex-shrink-0 hover:bg-brand-light transition-colors"
-          >
-            Explorar
-          </button>
-        </div>
-
-        {/* Próxima sesión */}
-        <section>
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
-            Próxima sesión
-          </h2>
-          <div className="bg-white rounded-2xl px-5 py-4 shadow-sm flex items-center gap-4">
-            <div className="w-11 h-11 rounded-full bg-brand-soft flex items-center justify-center text-2xl flex-shrink-0">
-              📅
-            </div>
-            <div className="flex-1">
-              <p className="text-gray-400 text-sm">Aún no tienes sesiones agendadas</p>
-              <button
-                onClick={() => router.push("/discover")}
-                className="text-brand text-xs font-semibold mt-1 hover:underline"
-              >
-                Agendar ahora →
-              </button>
-            </div>
-          </div>
-        </section>
-
-        {/* Mentoras destacadas */}
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
-              Mentoras para ti
-            </h2>
-            <button
-              onClick={() => router.push("/discover")}
-              className="text-brand text-xs font-semibold hover:underline"
-            >
-              Ver todas
-            </button>
-          </div>
-
-          <div className="space-y-3">
-            {featured.map((mentor) => (
-              <button
-                key={mentor.id}
-                onClick={() => router.push(`/booking/${mentor.id}`)}
-                className="w-full bg-white rounded-2xl px-4 py-3 flex items-center gap-3 shadow-sm hover:shadow-md transition-shadow text-left"
-              >
-                <div className="w-12 h-12 rounded-full bg-brand-soft flex items-center justify-center text-2xl flex-shrink-0">
-                  {mentor.avatar}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm text-gray-900 truncate">
-                    {mentor.name}
-                  </p>
-                  <p className="text-brand text-xs">{mentor.role}</p>
-                  <p className="text-gray-400 text-xs">{mentor.company}</p>
-                </div>
-                <div className="flex-shrink-0">
-                  <div className="flex flex-wrap gap-1 justify-end">
-                    {mentor.tags.slice(0, 1).map((tag) => (
-                      <span
-                        key={tag}
-                        className="bg-brand-light text-brand text-[10px] font-medium px-2 py-0.5 rounded-full"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-        </section>
-      </main>
-
-      {/* Bottom navbar */}
-      <nav className="bg-white border-t border-gray-100 px-4 py-3 flex items-center justify-around">
-        <button className="flex flex-col items-center gap-0.5 text-brand">
-          <IoHomeOutline className="text-xl" />
-          <span className="text-[10px] font-medium">Inicio</span>
-        </button>
-        <button
-          onClick={() => router.push("/roadmap")}
-          className="flex flex-col items-center gap-0.5 text-gray-400 hover:text-brand transition-colors"
-        >
-          <IoCompassOutline className="text-xl" />
-          <span className="text-[10px] font-medium">Ruta</span>
-        </button>
-        <button
-          onClick={() => router.push("/explore")}
-          className="flex flex-col items-center gap-0.5 text-gray-400 hover:text-brand transition-colors"
-        >
-          <IoSearchOutline className="text-xl" />
-          <span className="text-[10px] font-medium">Explorar</span>
-        </button>
-        <button
-          onClick={() => router.push("/sessions")}
-          className="flex flex-col items-center gap-0.5 text-gray-400 hover:text-brand transition-colors"
-        >
-          <IoCalendarOutline className="text-xl" />
-          <span className="text-[10px] font-medium">Calendario</span>
-        </button>
-        <button
-          onClick={() => router.push("/profile")}
-          className="flex flex-col items-center gap-0.5 text-gray-400 hover:text-brand transition-colors"
-        >
-          <IoPersonOutline className="text-xl" />
-          <span className="text-[10px] font-medium">Perfil</span>
-        </button>
-      </nav>
+function ProgressBar({
+  percent,
+  color = "bg-brand",
+}: {
+  percent: number;
+  color?: string;
+}) {
+  return (
+    <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+      <div
+        className={`h-full rounded-full ${color} transition-all duration-500`}
+        style={{ width: `${percent}%` }}
+      />
     </div>
   );
+}
+
+// ─── Mentee Dashboard ──────────────────────────────────────────────────────
+
+function MenteeWelcomeBanner({ data }: { data: MenteeDashboardData }) {
+  return (
+    <div className="bg-brand rounded-2xl p-5 relative overflow-hidden">
+      <div className="absolute right-0 top-0 text-7xl opacity-20 leading-none select-none pr-3 pt-1">
+        🌟
+      </div>
+      <div className="relative">
+        <p className="text-white/90 text-sm font-medium mb-0.5">
+          Bienvenida de vuelta
+        </p>
+        <h1 className="text-white text-xl font-bold mb-1">
+          {data.userName} 👋
+        </h1>
+        <p className="text-yellow-300 text-xs font-bold tracking-wide uppercase mb-3">
+          ¡Felicidades por tus {data.sessionMilestoneCount} sesiones!
+        </p>
+        <p className="text-white/75 text-xs leading-relaxed italic">
+          "{data.motivationalQuote}"
+        </p>
+        <p className="text-white/50 text-[10px] mt-0.5">— EllasTransforman</p>
+      </div>
+    </div>
+  );
+}
+
+function MenteeUpcomingSession({ data }: { data: MenteeDashboardData }) {
+  const router = useRouter();
+  const session = data.upcomingSession;
+
+  if (!session) {
+    return (
+      <section>
+        <SectionHeader title="Próxima sesión" />
+        <div className="bg-white rounded-2xl px-5 py-4 shadow-sm flex items-center gap-4">
+          <div className="w-11 h-11 rounded-full bg-brand-soft flex items-center justify-center text-2xl flex-shrink-0">
+            📅
+          </div>
+          <div className="flex-1">
+            <p className="text-gray-400 text-sm">Aún no tienes sesiones agendadas</p>
+            <button
+              onClick={() => router.push("/discover")}
+              className="text-brand text-xs font-semibold mt-1 hover:underline"
+            >
+              Agendar ahora →
+            </button>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section>
+      <SectionHeader title="Próxima sesión" />
+      <div className="bg-white rounded-2xl p-4 shadow-sm">
+        <div className="flex items-start gap-3 mb-3">
+          <div className="w-12 h-12 rounded-full bg-brand-soft flex items-center justify-center text-2xl flex-shrink-0">
+            {session.mentorAvatar}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-sm text-gray-900 leading-snug">
+              {session.title}
+            </p>
+            <p className="text-brand text-xs mt-0.5">
+              Con {session.mentorName} · {session.mentorRole}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4 text-xs text-gray-500 mb-3">
+          <span className="flex items-center gap-1">
+            <IoCalendarOutline className="text-sm text-brand" />
+            {session.dateLabel}
+          </span>
+          <span className="flex items-center gap-1">
+            <IoTimeOutline className="text-sm text-brand" />
+            {session.startTime} – {session.endTime}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <span className="flex items-center gap-1 text-xs text-gray-400">
+            <IoLocationOutline className="text-sm" />
+            {session.locationType}
+          </span>
+          <div className="flex gap-2">
+            <button
+              onClick={() => router.push(`/booking/${session.mentorId}`)}
+              className="px-4 py-1.5 bg-brand text-white text-xs font-semibold rounded-full hover:opacity-90 transition-opacity"
+            >
+              Unirme
+            </button>
+            <button
+              onClick={() => router.push(`/booking/${session.mentorId}`)}
+              className="px-4 py-1.5 border border-gray-200 text-gray-600 text-xs font-semibold rounded-full hover:bg-gray-50 transition-colors"
+            >
+              Detalles
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function MenteeActiveGoals({ data }: { data: MenteeDashboardData }) {
+  const router = useRouter();
+
+  return (
+    <section>
+      <SectionHeader
+        title="Tus metas"
+        action={{ label: "Ver todas", route: "/roadmap" }}
+      />
+      <div className="bg-white rounded-2xl shadow-sm divide-y divide-gray-50">
+        {data.activeGoals.map((goal: ActiveGoalCard) => (
+          <div key={goal.id} className="px-4 py-3 flex items-center gap-3">
+            <div
+              className={`w-9 h-9 rounded-full ${goal.iconBg} flex items-center justify-center text-base flex-shrink-0`}
+            >
+              {goal.icon}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-sm font-semibold text-gray-900 leading-tight">
+                  {goal.title}
+                </p>
+                <span className="text-xs font-bold text-brand ml-2 flex-shrink-0">
+                  {goal.progressPercent}%
+                </span>
+              </div>
+              <p className="text-xs text-gray-400 mb-1.5">{goal.description}</p>
+              <ProgressBar percent={goal.progressPercent} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function MenteeGrowthProgress({ data }: { data: MenteeDashboardData }) {
+  const { growthStats } = data;
+  return (
+    <section>
+      <SectionHeader title="Progreso de crecimiento" />
+      <div className="bg-white rounded-2xl p-4 shadow-sm">
+        <div className="flex items-center justify-between mb-1">
+          <p className="text-xs text-gray-400">{growthStats.chartLabel}</p>
+          <span className="text-[10px] font-semibold text-brand uppercase tracking-wide">
+            Skill score
+          </span>
+        </div>
+        <div className="mt-1 mb-4">
+          <Sparkline data={growthStats.chartDataByWeek} />
+        </div>
+        <div className="flex justify-between border-t border-gray-50 pt-3">
+          <div>
+            <p className="text-xs text-gray-400 mb-0.5">Sesiones</p>
+            <p className="text-sm font-bold text-brand">
+              {growthStats.sessionsThisMonth} este mes
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-xs text-gray-400 mb-0.5">Habilidades ganadas</p>
+            <p className="text-sm font-bold text-green-600">
+              {growthStats.skillsGained.join(" · ")}
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function MenteeRoadmapSummary({ data }: { data: MenteeDashboardData }) {
+  const router = useRouter();
+  const { roadmapSummary } = data;
+
+  return (
+    <section>
+      <div className="bg-white rounded-2xl p-4 shadow-sm">
+        <div className="flex items-start justify-between mb-3">
+          <div>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">
+              Career Roadmap
+            </p>
+            <p className="text-sm font-bold text-gray-900">
+              {roadmapSummary.pathTitle}
+            </p>
+          </div>
+          <span className="text-xs font-semibold text-brand bg-brand-soft px-2.5 py-1 rounded-full flex-shrink-0">
+            Etapa {roadmapSummary.currentStage} de {roadmapSummary.totalStages}
+          </span>
+        </div>
+
+        <div className="space-y-2 mb-3">
+          {roadmapSummary.completedItems.map((item, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <IoCheckmarkCircle className="text-green-500 text-base flex-shrink-0" />
+              <p className="text-xs text-gray-600">{item}</p>
+            </div>
+          ))}
+          <div className="flex items-center gap-2">
+            <IoEllipseOutline className="text-gray-300 text-base flex-shrink-0" />
+            <p className="text-xs text-gray-400">{roadmapSummary.inProgressItem}</p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => router.push("/roadmap")}
+          className="w-full py-2 border border-brand text-brand text-xs font-semibold rounded-full hover:bg-brand-light transition-colors"
+        >
+          Ver roadmap completo
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function MenteeAIAction({ data }: { data: MenteeDashboardData }) {
+  const router = useRouter();
+  const { aiAction } = data;
+
+  return (
+    <div className="bg-white rounded-2xl p-4 shadow-sm border border-brand-soft">
+      <div className="flex items-center gap-2 mb-2">
+        <IoSparklesOutline className="text-brand text-base" />
+        <p className="text-xs font-bold text-brand uppercase tracking-wide">
+          Acción recomendada
+        </p>
+      </div>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm text-gray-700 leading-snug flex-1">
+          {aiAction.suggestion}
+        </p>
+        <button
+          onClick={() => router.push(aiAction.ctaRoute)}
+          className="px-5 py-2 bg-brand text-white text-sm font-bold rounded-full hover:opacity-90 transition-opacity flex-shrink-0"
+        >
+          {aiAction.ctaLabel}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function MenteeDashboard() {
+  const router = useRouter();
+  const data = mockMenteeDashboard;
+
+  const rightSlot = (
+    <>
+      <button className="w-9 h-9 rounded-full bg-brand-soft flex items-center justify-center text-brand hover:bg-brand-light transition-colors relative">
+        <IoNotificationsOutline className="text-lg" />
+        <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-400 rounded-full" />
+      </button>
+      <button
+        onClick={() => router.push("/messages")}
+        className="w-9 h-9 rounded-full bg-brand-soft flex items-center justify-center text-brand hover:bg-brand-light transition-colors"
+      >
+        <IoChatbubbleOutline className="text-lg" />
+      </button>
+    </>
+  );
+
+  return (
+    <AppLayout>
+      <AppHeader rightSlot={rightSlot} />
+      <main className="flex-1 px-5 py-5 space-y-5 overflow-y-auto pb-28">
+        <MenteeWelcomeBanner data={data} />
+        <MenteeUpcomingSession data={data} />
+        <MenteeActiveGoals data={data} />
+        <MenteeGrowthProgress data={data} />
+        <MenteeRoadmapSummary data={data} />
+        <MenteeAIAction data={data} />
+      </main>
+    </AppLayout>
+  );
+}
+
+// ─── Mentor Dashboard ──────────────────────────────────────────────────────
+
+function MentorWelcomeBanner({ data }: { data: MentorDashboardData }) {
+  return (
+    <div className="rounded-2xl p-5 relative overflow-hidden" style={{ background: "linear-gradient(135deg, #2d6a4f 0%, #40916c 100%)" }}>
+      <div className="absolute right-0 top-0 text-7xl opacity-20 leading-none select-none pr-3 pt-1">
+        🌱
+      </div>
+      <div className="relative">
+        <p className="text-white/80 text-sm font-medium mb-0.5">
+          Bienvenida de vuelta
+        </p>
+        <h1 className="text-white text-xl font-bold mb-1">
+          {data.userName} 🌟
+        </h1>
+        <p className="text-emerald-200 text-xs font-bold tracking-wide uppercase mb-3">
+          {data.sessionMilestoneCount} sesiones de mentoría dadas
+        </p>
+        <p className="text-white/70 text-xs leading-relaxed italic">
+          "Tu guía transforma el camino de otra mujer."
+        </p>
+        <p className="text-white/40 text-[10px] mt-0.5">— EllasTransforman</p>
+      </div>
+    </div>
+  );
+}
+
+function MentorUpcomingSession({ data }: { data: MentorDashboardData }) {
+  const router = useRouter();
+  const session = data.upcomingSession;
+
+  if (!session) {
+    return (
+      <section>
+        <SectionHeader title="Próxima sesión" />
+        <div className="bg-white rounded-2xl px-5 py-4 shadow-sm flex items-center gap-4">
+          <div className="w-11 h-11 rounded-full bg-green-50 flex items-center justify-center text-2xl flex-shrink-0">
+            📅
+          </div>
+          <p className="text-gray-400 text-sm">No tienes sesiones programadas</p>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section>
+      <SectionHeader title="Próxima sesión" />
+      <div className="bg-white rounded-2xl p-4 shadow-sm">
+        <div className="flex items-start gap-3 mb-3">
+          <div className="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center text-2xl flex-shrink-0">
+            {session.menteeAvatar}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-sm text-gray-900 leading-snug">
+              {session.title}
+            </p>
+            <p className="text-green-700 text-xs mt-0.5">
+              Con {session.menteeName} · Meta: {session.menteeGoal}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4 text-xs text-gray-500 mb-3">
+          <span className="flex items-center gap-1">
+            <IoCalendarOutline className="text-sm text-green-600" />
+            {session.dateLabel}
+          </span>
+          <span className="flex items-center gap-1">
+            <IoTimeOutline className="text-sm text-green-600" />
+            {session.startTime} – {session.endTime}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <span className="flex items-center gap-1 text-xs text-gray-400">
+            <IoLocationOutline className="text-sm" />
+            {session.locationType}
+          </span>
+          <button
+            onClick={() => router.push("/sessions")}
+            className="px-4 py-1.5 text-xs font-semibold rounded-full text-white hover:opacity-90 transition-opacity"
+            style={{ background: "#40916c" }}
+          >
+            Ver sesión
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function MentorActiveMentees({ data }: { data: MentorDashboardData }) {
+  const router = useRouter();
+
+  return (
+    <section>
+      <SectionHeader
+        title="Tus mentees activas"
+        action={{ label: "Ver todas", route: "/sessions" }}
+      />
+      <div className="bg-white rounded-2xl shadow-sm divide-y divide-gray-50">
+        {data.activeMentees.map((mentee: MenteeProgressCard) => (
+          <div key={mentee.id} className="px-4 py-3">
+            <div className="flex items-center gap-3 mb-1.5">
+              <div className="w-9 h-9 rounded-full bg-green-50 flex items-center justify-center text-base flex-shrink-0">
+                {mentee.avatar}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold text-gray-900">
+                    {mentee.name}
+                  </p>
+                  <div className="flex items-center gap-1.5">
+                    {mentee.needsAttention && (
+                      <span className="w-2 h-2 bg-amber-400 rounded-full flex-shrink-0" />
+                    )}
+                    <span className="text-xs font-bold text-green-700">
+                      {mentee.progressPercent}%
+                    </span>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-400">{mentee.goal}</p>
+              </div>
+            </div>
+            <ProgressBar
+              percent={mentee.progressPercent}
+              color={mentee.needsAttention ? "bg-amber-400" : "bg-green-500"}
+            />
+            <p className="text-[10px] text-gray-400 mt-1">{mentee.lastActivityLabel}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function MentorImpactSection({ data }: { data: MentorDashboardData }) {
+  const { impactStats } = data;
+
+  return (
+    <section>
+      <SectionHeader title="Tu impacto" />
+      <div className="bg-white rounded-2xl p-4 shadow-sm">
+        <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="text-center">
+            <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-1">
+              <IoTrophyOutline className="text-green-600 text-lg" />
+            </div>
+            <p className="text-lg font-bold text-gray-900">{impactStats.sessionsGiven}</p>
+            <p className="text-[10px] text-gray-400">Sesiones</p>
+          </div>
+          <div className="text-center">
+            <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-1">
+              <IoHeartOutline className="text-blue-500 text-lg" />
+            </div>
+            <p className="text-lg font-bold text-gray-900">{impactStats.menteesActive}</p>
+            <p className="text-[10px] text-gray-400">Mentees</p>
+          </div>
+          <div className="text-center">
+            <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center mx-auto mb-1">
+              <IoPeopleOutline className="text-brand text-lg" />
+            </div>
+            <p className="text-lg font-bold text-gray-900">{impactStats.totalHours}h</p>
+            <p className="text-[10px] text-gray-400">Horas dadas</p>
+          </div>
+        </div>
+
+        <div className="mb-1">
+          <p className="text-xs text-gray-400">{impactStats.chartLabel}</p>
+        </div>
+        <Sparkline data={impactStats.chartDataByWeek} color="#40916c" />
+      </div>
+    </section>
+  );
+}
+
+function MentorProgramSection({ data }: { data: MentorDashboardData }) {
+  const router = useRouter();
+  const { programProgress } = data;
+  const stagePercent = Math.round((programProgress.currentStage / programProgress.totalStages) * 100);
+
+  return (
+    <section>
+      <div className="bg-white rounded-2xl p-4 shadow-sm">
+        <div className="flex items-start justify-between mb-3">
+          <div>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">
+              Programa actual
+            </p>
+            <p className="text-sm font-bold text-gray-900">{programProgress.title}</p>
+          </div>
+          <span className="text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0 text-green-700 bg-green-50">
+            Etapa {programProgress.currentStage}/{programProgress.totalStages}
+          </span>
+        </div>
+
+        <ProgressBar percent={stagePercent} color="bg-green-500" />
+
+        <div className="flex items-center justify-between mt-3">
+          <p className="text-xs text-gray-500">
+            Próximo: <span className="font-semibold text-gray-700">{programProgress.nextMilestone}</span>
+          </p>
+          <span className="text-xs text-gray-400 flex items-center gap-1">
+            <IoPeopleOutline className="text-sm" />
+            {programProgress.menteesEnrolled} mentees
+          </span>
+        </div>
+
+        <button
+          onClick={() => router.push("/sessions")}
+          className="w-full mt-3 py-2 border border-green-600 text-green-700 text-xs font-semibold rounded-full hover:bg-green-50 transition-colors"
+        >
+          Ver programa completo
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function MentorAIAction({ data }: { data: MentorDashboardData }) {
+  const router = useRouter();
+  const { aiAction } = data;
+
+  return (
+    <div className="bg-white rounded-2xl p-4 shadow-sm border border-green-100">
+      <div className="flex items-center gap-2 mb-2">
+        <IoSparklesOutline className="text-green-600 text-base" />
+        <p className="text-xs font-bold text-green-700 uppercase tracking-wide">
+          Acción recomendada
+        </p>
+      </div>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm text-gray-700 leading-snug flex-1">
+          {aiAction.suggestion}
+        </p>
+        <button
+          onClick={() => router.push(aiAction.ctaRoute)}
+          className="px-5 py-2 text-white text-sm font-bold rounded-full hover:opacity-90 transition-opacity flex-shrink-0"
+          style={{ background: "#40916c" }}
+        >
+          {aiAction.ctaLabel}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function MentorDashboard() {
+  const router = useRouter();
+  const data = mockMentorDashboard;
+
+  const rightSlot = (
+    <>
+      <button className="w-9 h-9 rounded-full bg-green-50 flex items-center justify-center text-green-700 hover:bg-green-100 transition-colors relative">
+        <IoNotificationsOutline className="text-lg" />
+        <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-amber-400 rounded-full" />
+      </button>
+      <button
+        onClick={() => router.push("/messages")}
+        className="w-9 h-9 rounded-full bg-green-50 flex items-center justify-center text-green-700 hover:bg-green-100 transition-colors"
+      >
+        <IoChatbubbleOutline className="text-lg" />
+      </button>
+    </>
+  );
+
+  return (
+    <AppLayout>
+      <AppHeader rightSlot={rightSlot} />
+      <main className="flex-1 px-5 py-5 space-y-5 overflow-y-auto pb-28">
+        <MentorWelcomeBanner data={data} />
+        <MentorUpcomingSession data={data} />
+        <MentorActiveMentees data={data} />
+        <MentorImpactSection data={data} />
+        <MentorProgramSection data={data} />
+        <MentorAIAction data={data} />
+      </main>
+    </AppLayout>
+  );
+}
+
+// ─── Shared helpers ────────────────────────────────────────────────────────
+
+function SectionHeader({
+  title,
+  action,
+}: {
+  title: string;
+  action?: { label: string; route: string };
+}) {
+  const router = useRouter();
+  return (
+    <div className="flex items-center justify-between mb-3">
+      <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
+        {title}
+      </h2>
+      {action && (
+        <button
+          onClick={() => router.push(action.route)}
+          className="text-brand text-xs font-semibold flex items-center gap-0.5 hover:underline"
+        >
+          {action.label}
+          <IoChevronForward className="text-xs" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ─── Page entry point ──────────────────────────────────────────────────────
+
+export default function HomePage() {
+  const [role, setRole] = useState<"mentee" | "mentor" | null>(null);
+
+  useEffect(() => {
+    const stored = localStorage.getItem("ellas_role") as "mentee" | "mentor" | null;
+    setRole(stored ?? "mentee");
+  }, []);
+
+  if (role === null) {
+    return (
+      <AppLayout>
+        <AppHeader />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-soft border-t-brand" />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  return role === "mentor" ? <MentorDashboard /> : <MenteeDashboard />;
 }
