@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   IoCheckmark,
   IoLockClosed,
@@ -12,6 +13,7 @@ import {
 import type { Milestone, MilestoneStatus, Roadmap } from "@/types/roadmap";
 import AppHeader from "@/components/AppHeader";
 import AppLayout from "@/components/AppLayout";
+import { supabase } from "@/lib/supabase/client";
 
 function ProgressCircle({ percent }: { percent: number }) {
   const r = 28;
@@ -176,9 +178,21 @@ const MOCK_PROFESSIONAL_GOAL =
   "Quiero convertirme en Product Manager en una startup de tecnología";
 
 export default function RoadmapPage() {
+  const router = useRouter();
   const [roadmap, setRoadmap] = useState<Roadmap | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+
+  useEffect(() => {
+    async function checkRole() {
+      const { data: { user } } = await supabase.auth.getUser();
+      const role = user?.user_metadata?.role ?? localStorage.getItem("ellas_role");
+      if (role === "mentor" || role === "mentora") {
+        router.replace("/mentor/impact");
+      }
+    }
+    checkRole();
+  }, [router]);
 
   const fetchRoadmap = async () => {
     setLoading(true);

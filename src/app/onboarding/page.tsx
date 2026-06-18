@@ -5,6 +5,7 @@ import { menteeQuestions } from "@/constants/mentee-questions";
 import { useRouter } from "next/navigation";
 import type { MenteeProfile } from "@/types/mentee-profile";
 import AppLayout from "@/components/AppLayout";
+import { supabase } from "@/lib/supabase/client";
 
 export default function OnboardingPage() {
   const [paso, setPaso] = useState(0);
@@ -38,6 +39,8 @@ export default function OnboardingPage() {
       }
 
       const data: MenteeProfile = await res.json();
+      localStorage.setItem("ellas_role", "mentee");
+      await supabase.auth.updateUser({ data: { role: "mentee", onboarding_completed: true } });
       setProfile(data);
     } catch (error) {
       console.error(error);

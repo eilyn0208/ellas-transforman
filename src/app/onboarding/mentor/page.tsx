@@ -4,6 +4,7 @@ import { useState } from "react";
 import { mentorQuestions } from "@/constants/mentor-questions";
 import { useRouter } from "next/navigation";
 import AppLayout from "@/components/AppLayout";
+import { supabase } from "@/lib/supabase/client";
 
 export default function MentorOnboardingPage() {
   const [paso, setPaso] = useState(0);
@@ -17,7 +18,7 @@ export default function MentorOnboardingPage() {
   const preguntaActual = mentorQuestions[paso];
   const porcentaje = ((paso + 1) / mentorQuestions.length) * 100;
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     const nuevasRespuestas = { ...answers };
 
     if (preguntaActual.type === "single") {
@@ -41,8 +42,9 @@ export default function MentorOnboardingPage() {
       setScaleValue(null);
       setTextAnswer("");
     } else {
-      localStorage.setItem("ellas_role", "mentora");
+      localStorage.setItem("ellas_role", "mentor");
       localStorage.setItem("ellas_mentor_answers", JSON.stringify(nuevasRespuestas));
+      await supabase.auth.updateUser({ data: { role: "mentor", onboarding_completed: true } });
       router.push("/onboarding/mentor/results");
     }
   };

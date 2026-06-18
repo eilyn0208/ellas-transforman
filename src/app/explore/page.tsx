@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   IoSearchOutline,
@@ -20,12 +20,24 @@ import AppHeader from "@/components/AppHeader";
 import AppLayout from "@/components/AppLayout";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
+import { supabase } from "@/lib/supabase/client";
 
 export default function ExplorePage() {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [storyIndex, setStoryIndex] = useState(0);
+
+  useEffect(() => {
+    async function checkRole() {
+      const { data: { user } } = await supabase.auth.getUser();
+      const role = user?.user_metadata?.role ?? localStorage.getItem("ellas_role");
+      if (role === "mentor" || role === "mentora") {
+        router.replace("/mentor/mentees");
+      }
+    }
+    checkRole();
+  }, [router]);
 
   const prevStory = () =>
     setStoryIndex((i) => (i - 1 + stories.length) % stories.length);
