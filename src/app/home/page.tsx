@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase/client";
 import {
   IoNotificationsOutline,
   IoChatbubbleOutline,
@@ -331,9 +332,9 @@ function MenteeAIAction({ data }: { data: MenteeDashboardData }) {
   );
 }
 
-function MenteeDashboard() {
+function MenteeDashboard({ userName }: { userName?: string }) {
   const router = useRouter();
-  const data = mockMenteeDashboard;
+  const data = userName ? { ...mockMenteeDashboard, userName } : mockMenteeDashboard;
 
   const rightSlot = (
     <>
@@ -613,9 +614,9 @@ function MentorAIAction({ data }: { data: MentorDashboardData }) {
   );
 }
 
-function MentorDashboard() {
+function MentorDashboard({ userName }: { userName?: string }) {
   const router = useRouter();
-  const data = mockMentorDashboard;
+  const data = userName ? { ...mockMentorDashboard, userName } : mockMentorDashboard;
 
   const rightSlot = (
     <>
@@ -679,10 +680,25 @@ function SectionHeader({
 
 export default function HomePage() {
   const [role, setRole] = useState<"mentee" | "mentor" | null>(null);
+  const [userName, setUserName] = useState<string | undefined>(undefined);
 
   useEffect(() => {
-    const stored = localStorage.getItem("ellas_role") as "mentee" | "mentor" | null;
-    setRole(stored ?? "mentee");
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser();
+      const metaRole = user?.user_metadata?.role as "mentee" | "mentor" | undefined;
+      const stored = localStorage.getItem("ellas_role") as "mentee" | "mentor" | null;
+      const resolvedRole = metaRole ?? stored ?? "mentee";
+      if (metaRole && metaRole !== stored) localStorage.setItem("ellas_role", metaRole);
+      setRole(resolvedRole);
+
+      const fullName =
+        user?.user_metadata?.full_name ??
+        user?.user_metadata?.name ??
+        localStorage.getItem("ellas_name") ??
+        undefined;
+      setUserName(fullName ?? undefined);
+    }
+    load();
   }, []);
 
   if (role === null) {
@@ -696,5 +712,7 @@ export default function HomePage() {
     );
   }
 
-  return role === "mentor" ? <MentorDashboard /> : <MenteeDashboard />;
+  return role === "mentor"
+    ? <MentorDashboard userName={userName} />
+    : <MenteeDashboard userName={userName} />;
 }

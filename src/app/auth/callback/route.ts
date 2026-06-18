@@ -7,10 +7,18 @@ export async function GET(request: Request) {
 
   if (code) {
     const supabase = await createSupabaseServerClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
-      return NextResponse.redirect(`${origin}/role-selection`);
+      const meta = data.user?.user_metadata ?? {};
+
+      if (meta.onboarding_completed) {
+        return NextResponse.redirect(`${origin}/home`);
+      }
+
+      const nombre = meta.full_name ?? meta.name ?? "";
+      const params = nombre ? `?nombre=${encodeURIComponent(nombre)}` : "";
+      return NextResponse.redirect(`${origin}/role-selection${params}`);
     }
   }
 

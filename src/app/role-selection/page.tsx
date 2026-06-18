@@ -81,10 +81,12 @@ function RoleSelectionContent() {
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
 
   // lee ?nombre=... de la URL; si no viene, usa fallback
-  const nombre = searchParams.get("nombre") ?? "[tu nombre]";
+  const nombre = searchParams.get("nombre") ?? "";
 
   const handleContinue = () => {
     if (!selectedRole) return;
+    localStorage.setItem("ellas_role", selectedRole === "mentora" ? "mentor" : "mentee");
+    if (nombre) localStorage.setItem("ellas_name", nombre);
     const params = new URLSearchParams({ nombre });
     const path = selectedRole === "mentora" ? "/onboarding/mentor" : "/onboarding";
     router.push(`${path}?${params.toString()}`);
@@ -94,7 +96,7 @@ function RoleSelectionContent() {
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-5 text-gray-900 font-sans">
       <div className="w-full max-w-[380px] bg-white rounded-[32px] px-7 pt-12 pb-8 min-h-[720px] flex flex-col shadow-[0_12px_40px_rgba(0,0,0,0.08)]">
         <h1 className="text-3xl font-bold leading-tight mb-3.5">
-          Hola {nombre},
+          Hola{nombre ? ` ${nombre}` : ""},
         </h1>
         <p className="text-lg leading-snug mb-9">
           cuéntanos quién eres y cómo te gustaría participar.

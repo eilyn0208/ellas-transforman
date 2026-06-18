@@ -9,19 +9,74 @@ import AppHeader from "@/components/AppHeader";
 import AppLayout from "@/components/AppLayout";
 import Badge from "@/components/ui/Badge";
 import ProgressBar from "@/components/ui/ProgressBar";
+import { supabase } from "@/lib/supabase/client";
 
 function useProfileData(): { profile: ProfileView; loading: boolean } {
   const [profile, setProfile] = useState<ProfileView>(mockMenteeProfile);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const storedRole = localStorage.getItem("ellas_role");
-    if (storedRole === "mentor" || storedRole === "mentora") {
-      setProfile(mockMentorProfile);
-    } else {
-      setProfile(mockMenteeProfile);
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      const role = user?.user_metadata?.role ?? localStorage.getItem("ellas_role");
+      const isMentor = role === "mentor" || role === "mentora";
+      const name =
+        user?.user_metadata?.full_name ??
+        user?.user_metadata?.name ??
+        user?.email ??
+        "";
+
+      if (isMentor) {
+        let mentorAnswers: Record<string, unknown> = {};
+        try {
+          mentorAnswers = JSON.parse(localStorage.getItem("ellas_mentor_answers") ?? "{}");
+        } catch { /* use empty */ }
+
+        const specialties =
+          (mentorAnswers.mentoring_topics as string[] | undefined) ??
+          mockMentorProfile.specialties;
+        const tags = specialties.slice(0, 3);
+        const bio =
+          (mentorAnswers.mentor_reason as string | undefined) ||
+          mockMentorProfile.bio;
+
+        setProfile({
+          ...mockMentorProfile,
+          name: name || mockMentorProfile.name,
+          bio,
+          tags,
+          specialties,
+        });
+      } else {
+        let menteeAnswers: Record<string, unknown> = {};
+        try {
+          menteeAnswers = JSON.parse(localStorage.getItem("ellas_mentee_answers") ?? "{}");
+        } catch { /* use empty */ }
+
+        const interests =
+          (menteeAnswers.interests as string[] | undefined) ??
+          mockMenteeProfile.tags;
+        const tags = interests.slice(0, 3);
+        const goalsList = (menteeAnswers.goals as string[] | undefined);
+        const activeGoalTitle = goalsList?.[0] ?? mockMenteeProfile.activeGoal.title;
+        const additionalContext = menteeAnswers.additionalContext as string | undefined;
+
+        setProfile({
+          ...mockMenteeProfile,
+          name: name || mockMenteeProfile.name,
+          bio: additionalContext || mockMenteeProfile.bio,
+          tags,
+          activeGoal: {
+            ...mockMenteeProfile.activeGoal,
+            title: activeGoalTitle,
+          },
+        });
+      }
+
+      setLoading(false);
     }
-    setLoading(false);
+    load();
   }, []);
 
   return { profile, loading };
@@ -31,6 +86,12 @@ export default function ProfilePage() {
   const router = useRouter();
   const { profile, loading } = useProfileData();
   const [bio, setBio] = useState("");
+
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+    localStorage.removeItem("ellas_role");
+    router.push("/welcome");
+  }
 
   useEffect(() => {
     if (profile) setBio(profile.bio);
@@ -227,42 +288,44 @@ export default function ProfilePage() {
             </div>
           )}
 
-          {/* Active Goals */}
-          <div className="bg-white rounded-2xl p-4 shadow-sm">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-1 h-4 bg-brand rounded-full" />
-                <span className="text-sm font-semibold text-gray-700">
-                  Metas activas
+          {/* Active Goals — solo para mentees */}
+          {isMentee && (
+            <div className="bg-white rounded-2xl p-4 shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-1 h-4 bg-brand rounded-full" />
+                  <span className="text-sm font-semibold text-gray-700">
+                    Metas activas
+                  </span>
+                </div>
+                <span className="text-xs text-gray-400">
+                  {profile.activeGoal.inProgressCount} en progreso
                 </span>
               </div>
-              <span className="text-xs text-gray-400">
-                {profile.activeGoal.inProgressCount} en progreso
-              </span>
+              <p className="text-sm font-bold text-gray-800 mb-2.5">
+                {profile.activeGoal.title}
+              </p>
+              <div className="flex items-center gap-2 mb-1.5">
+                <ProgressBar
+                  percent={profile.activeGoal.progressPercent}
+                  size="md"
+                  className="flex-1"
+                />
+                <span className="text-xs font-bold text-brand flex-shrink-0">
+                  {profile.activeGoal.progressPercent}%
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 mb-3">
+                {profile.activeGoal.milestoneLabel}
+              </p>
+              <button
+                onClick={() => router.push("/roadmap")}
+                className="text-xs font-semibold text-brand border border-brand px-4 py-2 rounded-full hover:bg-brand-light transition-colors"
+              >
+                Ver Roadmap
+              </button>
             </div>
-            <p className="text-sm font-bold text-gray-800 mb-2.5">
-              {profile.activeGoal.title}
-            </p>
-            <div className="flex items-center gap-2 mb-1.5">
-              <ProgressBar
-                percent={profile.activeGoal.progressPercent}
-                size="md"
-                className="flex-1"
-              />
-              <span className="text-xs font-bold text-brand flex-shrink-0">
-                {profile.activeGoal.progressPercent}%
-              </span>
-            </div>
-            <p className="text-xs text-gray-500 mb-3">
-              {profile.activeGoal.milestoneLabel}
-            </p>
-            <button
-              onClick={() => router.push("/roadmap")}
-              className="text-xs font-semibold text-brand border border-brand px-4 py-2 rounded-full hover:bg-brand-light transition-colors"
-            >
-              Ver Roadmap
-            </button>
-          </div>
+          )}
 
           {/* Logros */}
           <div className="bg-white rounded-2xl p-4 shadow-sm">
@@ -361,7 +424,7 @@ export default function ProfilePage() {
               </button>
               <button
                 onClick={() =>
-                  router.push(isMentee ? "/discover" : "/explore")
+                  router.push(isMentee ? "/discover" : "/mentor/mentees")
                 }
                 className="flex-1 text-xs font-semibold text-white bg-brand py-2.5 rounded-full hover:bg-brand-dark transition-colors"
               >
@@ -369,6 +432,13 @@ export default function ProfilePage() {
               </button>
             </div>
           </div>
+          {/* Cerrar sesión */}
+          <button
+            onClick={handleSignOut}
+            className="w-full text-sm font-semibold text-red-500 border border-red-200 py-3 rounded-2xl hover:bg-red-50 transition-colors"
+          >
+            Cerrar sesión
+          </button>
         </div>
       </main>
     </AppLayout>
