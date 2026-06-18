@@ -32,7 +32,7 @@ export default function BeginPage() {
 
         <button
           onClick={() => router.push("/welcome")}
-          className="absolute bottom-10 left-6 right-6 rounded-2xl bg-[#824BE5] py-4 text-lg font-semibold text-white shadow-lg"
+          className="absolute bottom-10 left-6 right-6 rounded-2xl bg-brand py-4 text-lg font-semibold text-white shadow-lg hover:bg-brand-dark transition-colors"
         >
           Comenzar
         </button>

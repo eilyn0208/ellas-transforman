@@ -1,80 +1,16 @@
 "use client";
 
 import { useRef, useState } from "react";
-
-interface Mentor {
-  id: string;
-  name: string;
-  role: string;
-  company: string;
-  bio: string;
-  avatar: string;
-  tags: string[];
-}
-
-const mentors: Mentor[] = [
-  {
-    id: "1",
-    name: "Ana Martínez",
-    role: "Software Engineer",
-    company: "Microsoft",
-    bio: "Le apasiona ayudar a mujeres a iniciar una carrera en tecnología.",
-    avatar: "👩‍💻",
-    tags: ["Programación", "Carrera tech", "Mentoría"],
-  },
-  {
-    id: "2",
-    name: "María Gómez",
-    role: "Product Manager",
-    company: "Google",
-    bio: "Ayuda a estudiantes a encontrar oportunidades profesionales.",
-    avatar: "👩‍💼",
-    tags: ["Liderazgo", "Producto", "Networking"],
-  },
-  {
-    id: "3",
-    name: "Valeria Torres",
-    role: "UX Designer",
-    company: "Nubank",
-    bio: "Especialista en diseño de productos digitales y mentoría.",
-    avatar: "👩‍🎨",
-    tags: ["Diseño UX/UI", "Portafolio", "Creatividad"],
-  },
-  {
-    id: "4",
-    name: "Camila Rojas",
-    role: "Data Scientist",
-    company: "Amazon",
-    bio: "Apoya a jóvenes interesadas en datos, IA y análisis.",
-    avatar: "👩‍🔬",
-    tags: ["Datos", "Inteligencia Artificial", "Estudios"],
-  },
-  {
-    id: "5",
-    name: "Sofía Herrera",
-    role: "Ingeniera Aeroespacial",
-    company: "SpaceX",
-    bio: "Comparte su experiencia para inspirar vocaciones STEM.",
-    avatar: "👩‍🚀",
-    tags: ["STEM", "Inspiración", "Ciencia"],
-  },
-  {
-    id: "6",
-    name: "Daniela Pérez",
-    role: "Profesora universitaria",
-    company: "UNAM",
-    bio: "Guía a estudiantes en su transición de la universidad al trabajo.",
-    avatar: "👩‍🏫",
-    tags: ["Educación", "Primer empleo", "Orientación"],
-  },
-];
+import { useRouter } from "next/navigation";
+import { type Mentor, mentors } from "@/constants/mentors";
+import AppLayout from "@/components/AppLayout";
 
 const SWIPE_THRESHOLD = 120;
 const ROTATION_FACTOR = 0.08;
 
 export default function DiscoverPage() {
+  const router = useRouter();
   const [index, setIndex] = useState(0);
-  const [matches, setMatches] = useState<Mentor[]>([]);
 
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
@@ -99,7 +35,8 @@ export default function DiscoverPage() {
 
     setTimeout(() => {
       if (direction === "right") {
-        setMatches((prev) => [...prev, mentor]);
+        router.push(`/booking/${mentor.id}`);
+        return;
       }
       setIndex((i) => i + 1);
       resetCard();
@@ -136,7 +73,6 @@ export default function DiscoverPage() {
 
   const handleReiniciar = () => {
     setIndex(0);
-    setMatches([]);
     resetCard();
   };
 
@@ -145,8 +81,8 @@ export default function DiscoverPage() {
   const nopeOpacity = Math.min(Math.max(-position.x / SWIPE_THRESHOLD, 0), 1);
 
   return (
-    <main className="min-h-screen bg-white p-6 flex items-center justify-center">
-      <div className="max-w-md w-full">
+    <AppLayout showNav={false} bg="bg-white">
+      <main className="flex-1 px-6 py-6 flex flex-col justify-center">
         <h1 className="text-3xl font-bold mb-6 text-center">
           Mentoras para ti 💜
         </h1>
@@ -160,31 +96,12 @@ export default function DiscoverPage() {
             </h2>
 
             <p className="text-gray-600 mb-6">
-              {matches.length > 0
-                ? `Hiciste match con ${matches.length} mentora${matches.length > 1 ? "s" : ""}.`
-                : "No hiciste match con ninguna mentora esta vez."}
+              Has explorado todas las mentoras disponibles.
             </p>
-
-            {matches.length > 0 && (
-              <ul className="mb-6 space-y-2 text-left">
-                {matches.map((mentor) => (
-                  <li
-                    key={mentor.id}
-                    className="flex items-center gap-3 rounded-2xl bg-[#DACDF2] p-3"
-                  >
-                    <span className="text-2xl">{mentor.avatar}</span>
-                    <div>
-                      <p className="font-semibold">{mentor.name}</p>
-                      <p className="text-sm text-gray-600">{mentor.role}</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
 
             <button
               onClick={handleReiniciar}
-              className="w-full rounded-2xl bg-[#824BE5] py-4 text-white font-semibold hover:opacity-90"
+              className="w-full rounded-2xl bg-brand py-4 text-white font-semibold hover:opacity-90"
             >
               Volver a empezar
             </button>
@@ -215,7 +132,7 @@ export default function DiscoverPage() {
                 {/* Sello CONECTAR */}
                 <div
                   style={{ opacity: likeOpacity }}
-                  className="pointer-events-none absolute top-6 left-6 z-10 -rotate-12 rounded-xl border-4 border-[#824BE5] px-3 py-1 text-2xl font-extrabold text-[#824BE5]"
+                  className="pointer-events-none absolute top-6 left-6 z-10 -rotate-12 rounded-xl border-4 border-brand px-3 py-1 text-2xl font-extrabold text-brand"
                 >
                   CONECTAR
                 </div>
@@ -242,32 +159,32 @@ export default function DiscoverPage() {
 
               <button
                 onClick={() => advance("right", current)}
-                className="flex-1 rounded-2xl bg-[#824BE5] py-4 text-white font-semibold hover:opacity-90"
+                className="flex-1 rounded-2xl bg-brand py-4 text-white font-semibold hover:opacity-90"
               >
                 Conectar 💜
               </button>
             </div>
 
-            <p className="mt-4 text-center text-sm text-[#909090]">
+            <p className="mt-4 text-center text-sm text-gray-400">
               Desliza la carta a la izquierda para omitir o a la derecha para conectar
             </p>
           </>
         )}
-      </div>
-    </main>
+      </main>
+    </AppLayout>
   );
 }
 
 function MentorCardContent({ mentor }: { mentor: Mentor }) {
   return (
     <div className="flex h-full flex-col p-6">
-      <div className="h-56 rounded-2xl bg-[#DACDF2] mb-6 flex items-center justify-center text-6xl">
+      <div className="h-56 rounded-2xl bg-brand-soft mb-6 flex items-center justify-center text-6xl">
         {mentor.avatar}
       </div>
 
       <h2 className="text-2xl font-bold">{mentor.name}</h2>
 
-      <p className="text-[#824BE5] font-semibold">{mentor.role}</p>
+      <p className="text-brand font-semibold">{mentor.role}</p>
 
       <p className="text-gray-500 mb-4">{mentor.company}</p>
 
@@ -277,7 +194,7 @@ function MentorCardContent({ mentor }: { mentor: Mentor }) {
         {mentor.tags.map((tag) => (
           <span
             key={tag}
-            className="rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-black"
+            className="rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-800"
           >
             {tag}
           </span>
