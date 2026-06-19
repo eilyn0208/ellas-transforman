@@ -65,7 +65,7 @@ export default function ExplorePage() {
     <AppLayout>
       <AppHeader rightSlot={rightSlot} />
 
-      <main className="flex-1 overflow-y-auto px-5 py-5 space-y-5 pb-24">
+      <main className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
         <h1 className="text-2xl font-bold text-brand leading-snug">
           Descubre mentoras,<br />workshops &amp; eventos
         </h1>

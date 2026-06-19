@@ -12,7 +12,9 @@ export default function AppLayout({
   bg = "bg-brand-bg",
 }: Props) {
   return (
-    <div className={`max-w-md mx-auto min-h-screen flex flex-col ${bg}`}>
+    <div
+      className={`max-w-md mx-auto flex flex-col ${bg} h-screen`}
+    >
       {children}
       {showNav && <BottomNav />}
     </div>

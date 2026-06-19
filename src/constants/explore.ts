@@ -2,7 +2,7 @@ import type { Workshop, Story, RecommendedMentor } from "@/types/explore";
 
 // TODO: Replace with Supabase queries
 
-export const EXPLORE_FILTER_TAGS = ["Design", "Product", "Leadership", "Spanish"];
+export const EXPLORE_FILTER_TAGS = ["Diseño", "Producto", "Liderazgo", "Español"];
 
 export const recommendedMentors: RecommendedMentor[] = [
   {
@@ -30,7 +30,7 @@ export const recommendedMentors: RecommendedMentor[] = [
 export const workshops: Workshop[] = [
   {
     id: "w1",
-    title: "Roadmapping Fundamentals",
+    title: "Fundamentos de Roadmapping",
     presenter: "Ana Martínez",
     date: "Jul 12",
     time: "17:00",

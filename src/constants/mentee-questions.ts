@@ -87,7 +87,7 @@ export const menteeQuestions: AssessmentQuestion[] = [
   maxSelections: 2,
   options: [
     "Alguien que me oriente",
-    "Accountability y seguimiento",
+    "Compromiso y seguimiento",
     "Consejos estratégicos",
     "Inspiración y motivación",
     "Ayuda técnica/profesional",

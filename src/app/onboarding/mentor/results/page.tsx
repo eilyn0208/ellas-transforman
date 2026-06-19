@@ -19,39 +19,39 @@ interface MentorAnswers {
 const STYLE_TO_PROFILE: Record<string, { title: string; description: string }> =
   {
     "Cercana y empática": {
-      title: "Empathic Guide",
+      title: "Guía Empática",
       description:
         "Creas espacios de confianza donde otras mujeres se sienten escuchadas y acompañadas en su crecimiento profesional.",
     },
     "Estratégica y directa": {
-      title: "Strategic Guide",
+      title: "Guía Estratégica",
       description:
         "Tienes una forma clara y estratégica de acompañar. Ayudas a tomar mejores decisiones y convertir metas en pasos concretos.",
     },
     "Estructurada y organizada": {
-      title: "Structured Mentor",
+      title: "Mentora Estructurada",
       description:
         "Diseñas rutas de crecimiento claras y medibles, ayudando a cada mentee a avanzar con orden y enfoque.",
     },
     "Motivadora": {
-      title: "Motivating Coach",
+      title: "Mentora Motivadora",
       description:
         "Inspiras y energizas a otras mujeres para superar sus miedos y tomar acción hacia sus metas profesionales.",
     },
     "Técnica y práctica": {
-      title: "Technical Guide",
+      title: "Guía Técnica",
       description:
         "Compartes conocimiento práctico y real sobre tu área, cerrando la brecha entre el aprendizaje teórico y el mundo laboral.",
     },
     "Reflexiva y orientadora": {
-      title: "Reflective Mentor",
+      title: "Mentora Reflexiva",
       description:
         "Guías a través de preguntas poderosas y reflexiones que ayudan a cada mentee a descubrir sus propias respuestas.",
     },
   };
 
 const DEFAULT_PROFILE = {
-  title: "Strategic Guide",
+  title: "Guía Estratégica",
   description:
     "Tienes experiencia y pasión para acompañar a otras mujeres en su desarrollo profesional.",
 };
@@ -74,7 +74,7 @@ export default function MentorResultsPage() {
   if (!loaded) {
     return (
       <AppLayout showNav={false}>
-        <div className="flex-1 flex items-center justify-center">
+        <div className="flex-1 flex items-start justify-center pt-16">
           <div className="w-8 h-8 rounded-full border-4 border-brand-soft border-t-brand animate-spin" />
         </div>
       </AppLayout>
@@ -93,14 +93,14 @@ export default function MentorResultsPage() {
   ];
 
   const mentoringAreas = answers.mentoring_topics ?? [
-    "Career Clarity",
+    "Claridad Profesional",
     "Confianza profesional",
     "Desarrollo profesional",
   ];
 
   const recommendedMentees = answers.preferred_mentees ?? [
     "Personas buscando claridad profesional",
-    "Early Career",
+    "Inicio de Carrera",
     "Mujeres entrando a tecnología",
   ];
 

@@ -224,7 +224,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const response = await gemini.models.generateContent({
-      model: "gemini-2.0-flash",
+      model: "gemini-3-flash-preview",
       contents: `La mentee quiere: ${professionalGoal}`,
       config: {
         systemInstruction: SYSTEM_PROMPT,

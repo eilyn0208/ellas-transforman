@@ -23,7 +23,7 @@ export const sessionEvents: SessionEvent[] = [
     mentorName: "Lucia Morales",
     mentorRole: "Senior PM Mentor",
     mentorAvatar: "👩‍💼",
-    description: "Focus: Mock interview prep & feedback. Zoom link available.",
+    description: "Enfoque: Preparación para entrevistas simuladas y retroalimentación. Zoom disponible.",
     zoomLink: "https://zoom.us/j/mock",
     mentorId: "2",
   },
@@ -34,9 +34,9 @@ export const sessionEvents: SessionEvent[] = [
     endTime: "12:00",
     dayOfWeek: 2,
     mentorName: "Alejandra Pérez",
-    mentorRole: "Mentee",
+    mentorRole: "Participante",
     mentorAvatar: "👩‍🎓",
-    description: "Session: Career roadmap review. Bring portfolio links.",
+    description: "Sesión: Revisión de hoja de ruta profesional. Trae enlaces de tu portafolio.",
   },
   {
     id: "s3",
@@ -45,10 +45,10 @@ export const sessionEvents: SessionEvent[] = [
     endTime: "15:30",
     dayOfWeek: 2,
     mentorName: "Sofía Ramos",
-    mentorRole: "Leadership Coach",
+    mentorRole: "Coach de Liderazgo",
     mentorAvatar: "👩‍🏫",
-    description: "Topic: Leadership storytelling. Room B - Materials attached.",
-    location: "Room B",
+    description: "Tema: Narrativa de liderazgo. Sala B - Materiales adjuntos.",
+    location: "Sala B",
     hasMaterials: true,
   },
   {
@@ -58,9 +58,9 @@ export const sessionEvents: SessionEvent[] = [
     endTime: "17:00",
     dayOfWeek: 2,
     mentorName: "Camila Torres",
-    mentorRole: "Mentor",
+    mentorRole: "Mentora",
     mentorAvatar: "👩‍💻",
-    description: "Drop in Q&A: career transitions and interview strategy.",
+    description: "Preguntas y respuestas: transiciones de carrera y estrategia de entrevista.",
     mentorId: "4",
   },
   {
@@ -81,11 +81,11 @@ export const sessionEvents: SessionEvent[] = [
 export const goalAgendaItems: GoalAgendaItem[] = [
   {
     id: "g1",
-    title: "Goal: Complete Product Leadership Course",
+    title: "Meta: Completar Curso de Liderazgo de Producto",
     dueDateLabel: "Vie",
-    owner: "You",
+    owner: "Tú",
     progressPercent: 60,
-    progressNote: "Hand-on project pending",
+    progressNote: "Proyecto práctico pendiente",
     dayOfWeek: 2,
     milestoneId: "m3",
   },
@@ -93,7 +93,7 @@ export const goalAgendaItems: GoalAgendaItem[] = [
     id: "g2",
     title: "Goal: Completar perfil de LinkedIn",
     dueDateLabel: "Jue",
-    owner: "You",
+    owner: "Tú",
     progressPercent: 80,
     progressNote: "Falta sección de habilidades",
     dayOfWeek: 3, // Jueves
@@ -103,8 +103,8 @@ export const goalAgendaItems: GoalAgendaItem[] = [
 
 export const SESSION_FILTER_TYPES = [
   { id: "mentoring", label: "1:1" },
-  { id: "cohort", label: "Cohort" },
-  { id: "workshop", label: "Workshop" },
-  { id: "office-hours", label: "Office Hours" },
+  { id: "cohort", label: "Cohorte" },
+  { id: "workshop", label: "Taller" },
+  { id: "office-hours", label: "Horas de Oficina" },
   { id: "goals", label: "Metas" },
 ] as const;

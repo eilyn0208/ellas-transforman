@@ -35,7 +35,8 @@ export default function OnboardingPage() {
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({}));
         console.error("Error de API:", errBody);
-        throw new Error("No se pudo generar el perfil");
+        setProfileError(true);
+        return;
       }
 
       const data: MenteeProfile = await res.json();
@@ -93,7 +94,7 @@ export default function OnboardingPage() {
   if (completed) {
     return (
       <AppLayout showNav={false} bg="bg-white">
-        <main className="flex-1 px-5 py-10 flex items-center justify-center">
+        <main className="flex-1 min-h-0 px-5 py-10 overflow-y-auto">
           <div className="w-full max-w-md">
             {loadingProfile && (
               <div className="py-20 text-center">

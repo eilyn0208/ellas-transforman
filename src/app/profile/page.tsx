@@ -113,7 +113,7 @@ export default function ProfilePage() {
     <AppLayout>
       <AppHeader showBack />
 
-      <main className="flex-1 overflow-y-auto pb-24">
+      <main className="flex-1 overflow-y-auto">
         {/* Photo + name block */}
         <div className="bg-white px-5 pt-7 pb-5 flex flex-col items-center gap-3">
           <div className="w-24 h-24 rounded-full bg-brand-soft flex items-center justify-center text-4xl border-4 border-white shadow-md select-none">
@@ -140,7 +140,7 @@ export default function ProfilePage() {
               <span className="text-sm font-semibold text-gray-700">
                 Descripción
               </span>
-              <span className="text-xs text-gray-400">80–200 chars</span>
+              <span className="text-xs text-gray-400">80–200 caracteres</span>
             </div>
             <textarea
               value={bio}

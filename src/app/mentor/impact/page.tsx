@@ -84,7 +84,7 @@ function HeroStatsBand() {
     { icon: <IoTrophyOutline className="text-xl" />, value: d.totalSessions, label: "Sesiones" },
     { icon: <IoTimeOutline className="text-xl" />, value: `${d.totalHours}h`, label: "Horas" },
     { icon: <IoPeopleOutline className="text-xl" />, value: d.menteesActive, label: "Activas" },
-    { icon: <IoStarOutline className="text-xl" />, value: d.avgRating, label: "Rating" },
+    { icon: <IoStarOutline className="text-xl" />, value: d.avgRating, label: "Calificación" },
   ];
 
   return (
@@ -288,7 +288,7 @@ export default function MiImpactoPage() {
     <AppLayout>
       <AppHeader rightSlot={rightSlot} />
 
-      <main className="flex-1 overflow-y-auto px-5 py-5 space-y-5 pb-28">
+      <main className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Mi Impacto</h1>
           <p className="text-xs text-gray-500 mt-0.5">Tu huella como mentora en EllasTransforman</p>

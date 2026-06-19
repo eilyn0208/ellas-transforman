@@ -69,7 +69,7 @@ function AIInsightBanner({ mentees }: { mentees: MenteeSummaryCard[] }) {
       <div className="flex items-center gap-2 mb-1.5">
         <IoSparklesOutline style={{ color: MENTOR_MID }} className="text-base flex-shrink-0" />
         <p className="text-xs font-bold uppercase tracking-wide" style={{ color: MENTOR_MID }}>
-          Insight IA
+          Perspectiva IA
         </p>
       </div>
       <p className="text-sm text-gray-700 leading-relaxed">{message}</p>
@@ -117,7 +117,7 @@ function MenteeCard({ mentee }: { mentee: MenteeSummaryCard }) {
         <div className="mb-3">
           <div className="flex items-center justify-between mb-1">
             <p className="text-xs text-gray-500">
-              Roadmap · Etapa {mentee.roadmapStage} de {mentee.roadmapTotalStages}
+              Ruta · Etapa {mentee.roadmapStage} de {mentee.roadmapTotalStages}
             </p>
             <span className="text-xs font-bold" style={{ color: progressColor }}>
               {mentee.roadmapProgressPercent}%
@@ -233,7 +233,7 @@ export default function MisMenuteesPage() {
     <AppLayout>
       <AppHeader rightSlot={rightSlot} />
 
-      <main className="flex-1 overflow-y-auto px-5 py-5 space-y-4 pb-28">
+      <main className="flex-1 overflow-y-auto px-5 py-5 space-y-4">
         {/* Page title */}
         <div className="flex items-center justify-between">
           <div>
