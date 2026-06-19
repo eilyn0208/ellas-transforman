@@ -45,6 +45,21 @@ export default function MentorOnboardingPage() {
       localStorage.setItem("ellas_role", "mentor");
       localStorage.setItem("ellas_mentor_answers", JSON.stringify(nuevasRespuestas));
       await supabase.auth.updateUser({ data: { role: "mentor", onboarding_completed: true } });
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const full_name = user.user_metadata?.full_name ?? user.user_metadata?.name ?? "";
+          const { error } = await supabase.from("profiles").upsert(
+            { id: user.id, full_name, email: user.email ?? "", role: "mentor" },
+            { onConflict: "id" }
+          );
+          if (error) {
+            console.error("profiles upsert failed:", error);
+          }
+        }
+      } catch (e) {
+        console.error("profiles upsert failed:", e);
+      }
       router.push("/onboarding/mentor/results");
     }
   };

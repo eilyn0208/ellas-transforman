@@ -42,6 +42,21 @@ export default function OnboardingPage() {
       const data: MenteeProfile = await res.json();
       localStorage.setItem("ellas_role", "mentee");
       await supabase.auth.updateUser({ data: { role: "mentee", onboarding_completed: true } });
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const full_name = user.user_metadata?.full_name ?? user.user_metadata?.name ?? "";
+          const { error } = await supabase.from("profiles").upsert(
+            { id: user.id, full_name, email: user.email ?? "", role: "mentee" },
+            { onConflict: "id" }
+          );
+          if (error) {
+            console.error("profiles upsert failed:", error);
+          }
+        }
+      } catch (e) {
+        console.error("profiles upsert failed:", e);
+      }
       setProfile(data);
     } catch (error) {
       console.error(error);
