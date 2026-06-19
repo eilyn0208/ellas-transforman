@@ -27,7 +27,7 @@ export const mockMentorImpact: MentorImpactFullData = {
     {
       id: "b1",
       emoji: "🏆",
-      title: "Top Mentor",
+      title: "Mentora Destacada",
       description: "Rating 4.9+ por 3 meses consecutivos",
       earnedAt: "May 2026",
     },

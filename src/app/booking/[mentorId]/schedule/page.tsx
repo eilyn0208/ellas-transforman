@@ -6,6 +6,7 @@ import { IoTimeOutline, IoCalendarOutline } from "react-icons/io5";
 import { mentors } from "@/constants/mentors";
 import PrimaryButton from "@/components/PrimaryButton";
 import AppLayout from "@/components/AppLayout";
+import AppHeader from "@/components/AppHeader";
 
 interface Props {
   params: Promise<{ mentorId: string }>;
@@ -61,35 +62,14 @@ export default function SchedulePage({ params }: Props) {
   };
 
   return (
-    <AppLayout showNav={false} bg="bg-white">
-      {/* Header */}
-      <header className="flex items-center gap-4 px-5 py-4 border-b border-gray-100 flex-shrink-0">
-        <button
-          onClick={() => router.back()}
-          className="text-gray-500 text-xl w-8 h-8 flex items-center justify-center hover:text-gray-800 transition-colors"
-          aria-label="Volver"
-        >
-          ←
-        </button>
-        <div
-          className="w-10 h-10 rounded-full bg-brand-soft flex items-center justify-center text-xl flex-shrink-0"
-          aria-hidden
-        >
-          {mentor.avatar}
-        </div>
-        <div>
-          <p className="font-bold text-sm leading-tight">
-            Agenda con {firstName}
-          </p>
-          <p className="text-gray-400 text-xs">Elige un horario</p>
-        </div>
-      </header>
+    <AppLayout showNav={false}>
+      <AppHeader showBack title={`Agenda con ${firstName}`} />
 
-      <div className="flex-1 px-5 py-6 flex flex-col gap-6">
+      <div className="flex-1 overflow-y-auto px-5 py-5 flex flex-col gap-6">
         <div>
           <h2 className="font-bold text-base mb-1">Horarios disponibles</h2>
           <p className="text-brand text-xs leading-relaxed">
-            Elige un momento para tu sesión de mentoría de 45 minutos
+            Elige un momento para tu sesión de mentoría de 30 minutos
           </p>
         </div>
 
@@ -126,7 +106,7 @@ export default function SchedulePage({ params }: Props) {
         </div>
 
         <p className="text-gray-400 text-xs leading-relaxed">
-          Las sesiones duran 45 minutos. Puedes cancelar hasta 12 horas antes
+          Las sesiones duran 30 minutos. Puedes cancelar hasta 12 horas antes
           sin penalización.
         </p>
 

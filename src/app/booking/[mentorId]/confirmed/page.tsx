@@ -6,6 +6,7 @@ import { IoCalendarOutline } from "react-icons/io5";
 import { mentors } from "@/constants/mentors";
 import PrimaryButton from "@/components/PrimaryButton";
 import AppLayout from "@/components/AppLayout";
+import AppHeader from "@/components/AppHeader";
 
 interface Props {
   params: Promise<{ mentorId: string }>;
@@ -26,9 +27,10 @@ function ConfirmedContent({ mentorId }: { mentorId: string }) {
 
   return (
     <AppLayout showNav={false}>
-      <main className="flex-1 flex flex-col items-center px-5 py-10">
+      <AppHeader showBack title="Sesión confirmada" />
+      <main className="flex-1 overflow-y-auto flex flex-col items-center px-5 py-5">
         {/* Glow + checkmark */}
-        <div className="flex-1 flex flex-col items-center justify-center w-full gap-5">
+        <div className="flex flex-col items-center w-full gap-5">
           <div className="relative flex items-center justify-center mb-2">
             <div className="absolute w-40 h-40 rounded-full bg-brand-light opacity-40" />
             <div className="absolute w-32 h-32 rounded-full bg-brand-soft opacity-60" />
@@ -72,7 +74,7 @@ function ConfirmedContent({ mentorId }: { mentorId: string }) {
         </div>
 
         {/* CTA */}
-        <div className="w-full mt-8">
+        <div className="w-full mt-auto">
           <PrimaryButton onClick={() => router.push("/home")}>
             Ir al inicio
           </PrimaryButton>

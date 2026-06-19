@@ -235,7 +235,7 @@ function MenteeGrowthProgress({ data }: { data: MenteeDashboardData }) {
         <div className="flex items-center justify-between mb-1">
           <p className="text-xs text-gray-400">{growthStats.chartLabel}</p>
           <span className="text-[10px] font-semibold text-brand uppercase tracking-wide">
-            Skill score
+            Puntaje
           </span>
         </div>
         <div className="mt-1 mb-4">
@@ -270,7 +270,7 @@ function MenteeRoadmapSummary({ data }: { data: MenteeDashboardData }) {
         <div className="flex items-start justify-between mb-3">
           <div>
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">
-              Career Roadmap
+              Ruta de Carrera
             </p>
             <p className="text-sm font-bold text-gray-900">
               {roadmapSummary.pathTitle}
@@ -354,7 +354,7 @@ function MenteeDashboard({ userName }: { userName?: string }) {
   return (
     <AppLayout>
       <AppHeader rightSlot={rightSlot} />
-      <main className="flex-1 px-5 py-5 space-y-5 overflow-y-auto pb-28">
+      <main className="flex-1 px-5 py-5 space-y-5 overflow-y-auto">
         <MenteeWelcomeBanner data={data} />
         <MenteeUpcomingSession data={data} />
         <MenteeActiveGoals data={data} />
@@ -636,7 +636,7 @@ function MentorDashboard({ userName }: { userName?: string }) {
   return (
     <AppLayout>
       <AppHeader rightSlot={rightSlot} />
-      <main className="flex-1 px-5 py-5 space-y-5 overflow-y-auto pb-28">
+      <main className="flex-1 px-5 py-5 space-y-5 overflow-y-auto">
         <MentorWelcomeBanner data={data} />
         <MentorUpcomingSession data={data} />
         <MentorActiveMentees data={data} />

@@ -58,7 +58,7 @@ export default function BottomNav() {
   const hoverColor = isMentor ? "hover:text-emerald-700" : "hover:text-brand";
 
   return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-gray-100 px-4 pt-3 pb-safe flex items-center justify-around z-10">
+    <nav className="flex-shrink-0 w-full bg-white border-t border-gray-100 px-4 pt-3 pb-safe flex items-center justify-around">
       {navItems.map(({ label, path, Icon }) => {
         const isActive =
           pathname === path ||

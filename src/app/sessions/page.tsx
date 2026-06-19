@@ -50,9 +50,9 @@ function getWeekDays(ref: Date): WeekDay[] {
 const SESSION_BADGE: Record<SessionType, { label: string; className: string }> =
   {
     mentoring: { label: "1:1", className: "bg-brand text-white" },
-    cohort: { label: "Cohort", className: "bg-purple-100 text-purple-700" },
-    workshop: { label: "Workshop", className: "bg-orange-100 text-orange-700" },
-    "office-hours": { label: "Office", className: "bg-blue-100 text-blue-700" },
+    cohort: { label: "Cohorte", className: "bg-purple-100 text-purple-700" },
+    workshop: { label: "Taller", className: "bg-orange-100 text-orange-700" },
+    "office-hours": { label: "Oficina", className: "bg-blue-100 text-blue-700" },
   };
 
 export default function SessionsPage() {
@@ -119,7 +119,7 @@ export default function SessionsPage() {
   return (
     <AppLayout>
       {/* Sticky header: AppHeader + week strip */}
-      <div className="sticky top-0 z-10 bg-white shadow-sm">
+      <div className="flex-shrink-0 z-10 bg-white shadow-sm">
         <AppHeader
           shadow={false}
           rightSlot={
@@ -149,7 +149,7 @@ export default function SessionsPage() {
       </div>
 
       {/* Scrollable content */}
-      <main className="flex-1 overflow-y-auto pb-[132px]">
+      <main className="flex-1 overflow-y-auto">
         {/* Stats row */}
         <div className="px-5 pt-4 pb-3 grid grid-cols-3 gap-2">
           <StatCard
@@ -265,7 +265,7 @@ export default function SessionsPage() {
                           {goal.title}
                         </p>
                         <p className="text-gray-400 text-[11px] mt-0.5">
-                          Owner: {goal.owner} • Due: {goal.dueDateLabel}
+                          Responsable: {goal.owner} • Fecha límite: {goal.dueDateLabel}
                         </p>
                         <div className="mt-2 mb-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                           <div
@@ -311,7 +311,7 @@ export default function SessionsPage() {
             className="fixed inset-0 bg-black/30 z-20"
             onClick={() => setShowFilter(false)}
           />
-          <div className="fixed bottom-16 left-1/2 -translate-x-1/2 w-full max-w-md bg-white rounded-t-3xl px-5 pt-5 pb-8 z-30 shadow-xl">
+          <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md lg:max-w-2xl bg-white rounded-t-3xl px-5 pt-5 pb-8 z-30 shadow-xl">
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
             <p className="font-bold text-gray-900 text-base mb-4">
               Filtrar por tipo
@@ -341,8 +341,8 @@ export default function SessionsPage() {
         </>
       )}
 
-      {/* Action bar — sits above the bottom nav */}
-      <div className="fixed bottom-16 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-gray-100 px-5 py-3 flex items-center justify-between z-10">
+      {/* Action bar — in flow, above BottomNav */}
+      <div className="flex-shrink-0 w-full bg-white border-t border-gray-100 px-5 py-3 flex items-center justify-between">
         <button className="text-sm font-semibold text-gray-400 hover:text-brand transition-colors">
           Vista día
         </button>

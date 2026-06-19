@@ -25,8 +25,8 @@ export default function BeginPage() {
           </h1>
 
           <p className="text-lg leading-relaxed">
-            Transform your career with trusted mentors, warm guidance, and a
-            community that uplifts you.
+            Transforma tu carrera con mentoras de confianza, orientación cálida
+            y una comunidad que te impulsa a crecer.
           </p>
         </div>
 

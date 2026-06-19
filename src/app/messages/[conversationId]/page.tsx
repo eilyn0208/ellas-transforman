@@ -373,7 +373,7 @@ export default function ConversationPage({ params }: Props) {
     <AppLayout showNav={false}>
       <AppHeader showBack rightSlot={rightSlot} />
 
-      <div className="flex-1 overflow-y-auto pb-24">
+      <div className="flex-1 overflow-y-auto">
         {/* Profile card */}
         <div className="bg-white mx-5 mt-4 mb-3 rounded-2xl shadow-sm px-4 py-4">
           <div className="flex items-start gap-3">
@@ -400,12 +400,12 @@ export default function ConversationPage({ params }: Props) {
                 </span>
                 {conv.menteeGoal && (
                   <span className="bg-gray-100 text-gray-600 text-[10px] font-medium px-2.5 py-1 rounded-full">
-                    Goal: {conv.menteeGoal}
+                    Meta: {conv.menteeGoal}
                   </span>
                 )}
                 {conv.menteeAvailability && (
                   <span className="bg-gray-100 text-gray-600 text-[10px] font-medium px-2.5 py-1 rounded-full">
-                    Available: {conv.menteeAvailability}
+                    Disponible: {conv.menteeAvailability}
                   </span>
                 )}
               </div>
@@ -456,8 +456,8 @@ export default function ConversationPage({ params }: Props) {
           <>
             <div className="mx-5 mb-3 bg-white rounded-2xl shadow-sm px-4 py-4">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-semibold text-gray-800">Quick responses</p>
-                <p className="text-[10px] text-gray-400">Tap para enviar</p>
+                <p className="text-sm font-semibold text-gray-800">Respuestas rápidas</p>
+                <p className="text-[10px] text-gray-400">Toca para enviar</p>
               </div>
               <div className="space-y-2">
                 <button
@@ -490,7 +490,7 @@ export default function ConversationPage({ params }: Props) {
             </div>
 
             <div className="mx-5 mb-3 bg-white rounded-2xl shadow-sm px-4 py-4">
-              <p className="text-sm font-semibold text-gray-800 mb-3">Canned replies</p>
+              <p className="text-sm font-semibold text-gray-800 mb-3">Respuestas predefinidas</p>
               <div className="grid grid-cols-3 gap-1.5 mb-1.5">
                 {CANNED_REPLIES.slice(0, 3).map((r) => (
                   <button
@@ -530,8 +530,8 @@ export default function ConversationPage({ params }: Props) {
         )}
       </div>
 
-      {/* Fixed input bar */}
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-gray-100 px-5 py-3 shadow-lg">
+      {/* Input bar — in flow */}
+      <div className="flex-shrink-0 w-full bg-white border-t border-gray-100 px-5 py-3 shadow-sm">
         <div className="flex items-center gap-2">
           <button className="text-gray-400 hover:text-brand transition-colors flex-shrink-0">
             <IoAttachOutline className="text-xl" />

@@ -9,7 +9,7 @@ export default function WelcomePage() {
       <AppHeader />
 
       <main className="flex-1 flex flex-col items-center justify-center px-6 py-10 text-center">
-        <h1 className="text-5xl font-extrabold text-foreground">¡Bienvenida!</h1>
+        <h1 className="text-5xl font-extrabold text-brand-dark">¡Bienvenida!</h1>
         <p className="mt-4 text-base text-foreground px-4">
           Empoderando tu camino profesional a través de la mentoría guiada.
         </p>

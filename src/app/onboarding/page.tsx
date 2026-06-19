@@ -35,12 +35,28 @@ export default function OnboardingPage() {
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({}));
         console.error("Error de API:", errBody);
-        throw new Error("No se pudo generar el perfil");
+        setProfileError(true);
+        return;
       }
 
       const data: MenteeProfile = await res.json();
       localStorage.setItem("ellas_role", "mentee");
       await supabase.auth.updateUser({ data: { role: "mentee", onboarding_completed: true } });
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const full_name = user.user_metadata?.full_name ?? user.user_metadata?.name ?? "";
+          const { error } = await supabase.from("profiles").upsert(
+            { id: user.id, full_name, email: user.email ?? "", role: "mentee" },
+            { onConflict: "id" }
+          );
+          if (error) {
+            console.error("profiles upsert failed:", error);
+          }
+        }
+      } catch (e) {
+        console.error("profiles upsert failed:", e);
+      }
       setProfile(data);
     } catch (error) {
       console.error(error);
@@ -93,7 +109,7 @@ export default function OnboardingPage() {
   if (completed) {
     return (
       <AppLayout showNav={false} bg="bg-white">
-        <main className="flex-1 px-5 py-10 flex items-center justify-center">
+        <main className="flex-1 min-h-0 px-5 py-10 overflow-y-auto">
           <div className="w-full max-w-md">
             {loadingProfile && (
               <div className="py-20 text-center">

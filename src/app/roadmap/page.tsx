@@ -226,9 +226,9 @@ export default function RoadmapPage() {
 
   return (
     <AppLayout>
-      <AppHeader showBack title="Roadmap" />
+      <AppHeader showBack title="Mi Ruta" />
 
-      <main className="flex-1 px-5 py-5 space-y-5 overflow-y-auto pb-24">
+      <main className="flex-1 px-5 py-5 space-y-5 overflow-y-auto">
         {loading && (
           <div className="py-20 flex flex-col items-center gap-4">
             <div className="h-10 w-10 animate-spin rounded-full border-4 border-brand-soft border-t-brand" />
