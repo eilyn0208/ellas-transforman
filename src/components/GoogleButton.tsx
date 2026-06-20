@@ -10,6 +10,9 @@ export default function GoogleButton({ onClick }: Props) {
       provider: "google",
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
+        queryParams: {
+          prompt: "select_account",
+        },
       },
     });
 
