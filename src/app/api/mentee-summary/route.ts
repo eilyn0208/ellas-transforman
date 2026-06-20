@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
   try {
     const profile = menteeProfile ?? {};
     const response = await gemini.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-2.5-flash",
       contents: buildPrompt(profile),
     });
 

@@ -13,7 +13,7 @@ export default function AppLayout({
 }: Props) {
   return (
     <div
-      className={`max-w-md mx-auto flex flex-col ${bg} h-screen`}
+      className={`max-w-md mx-auto flex flex-col ${bg} h-[100svh]`}
     >
       {children}
       {showNav && <BottomNav />}
