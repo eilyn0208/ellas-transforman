@@ -6,7 +6,7 @@ type Props = { onClick?: () => void };
 
 export default function GoogleButton({ onClick }: Props) {
   const handleGoogleSignIn = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
+    const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
@@ -15,6 +15,8 @@ export default function GoogleButton({ onClick }: Props) {
         },
       },
     });
+
+    console.log("OAuth URL generada por Supabase:", data?.url);
 
     if (error) {
       console.error("Error con Google Sign-In:", error.message);
