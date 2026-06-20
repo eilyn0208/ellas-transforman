@@ -1,12 +1,18 @@
 "use client";
 
+import { useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 
 type Props = { onClick?: () => void };
 
 export default function GoogleButton({ onClick }: Props) {
+  const [loading, setLoading] = useState(false);
+
   const handleGoogleSignIn = async () => {
-    const { data, error } = await supabase.auth.signInWithOAuth({
+    if (loading) return;
+    setLoading(true);
+
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
@@ -16,20 +22,18 @@ export default function GoogleButton({ onClick }: Props) {
       },
     });
 
-    console.log("OAuth URL generada por Supabase:", data?.url);
-
     if (error) {
       console.error("Error con Google Sign-In:", error.message);
       alert("Hubo un problema al iniciar sesión con Google");
+      setLoading(false);
     }
-    // No hace falta hacer router.push aquí — Supabase redirige a Google
-    // y luego Google redirige a /auth/callback automáticamente
   };
 
   return (
     <button
       onClick={onClick ?? handleGoogleSignIn}
-      className="w-full bg-brand hover:bg-brand-dark text-white font-semibold py-3 rounded-full flex items-center justify-center gap-2 transition-colors"
+      disabled={loading}
+      className="w-full bg-brand hover:bg-brand-dark text-white font-semibold py-3 rounded-full flex items-center justify-center gap-2 transition-colors disabled:opacity-60"
     >
       <svg width="20" height="20" viewBox="0 0 48 48">
         <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.5 6.1 29.5 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/>
