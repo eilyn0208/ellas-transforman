@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { menteeQuestions } from "@/constants/mentee-questions";
 import { useRouter } from "next/navigation";
+import { IoChevronBackOutline } from "react-icons/io5";
 import type { MenteeProfile } from "@/types/mentee-profile";
 import AppLayout from "@/components/AppLayout";
 import { supabase } from "@/lib/supabase/client";
@@ -100,6 +101,35 @@ export default function OnboardingPage() {
     }
   };
 
+  const handleBack = () => {
+    const nuevasRespuestas = { ...answers };
+
+    if (preguntaActual.type === "single" && selectedOptions.length > 0)
+      nuevasRespuestas[preguntaActual.id] = selectedOptions[0];
+    if (preguntaActual.type === "multiple" && selectedOptions.length > 0)
+      nuevasRespuestas[preguntaActual.id] = selectedOptions;
+    if (preguntaActual.type === "scale" && scaleValue !== null)
+      nuevasRespuestas[preguntaActual.id] = scaleValue;
+    if (preguntaActual.type === "text" && textAnswer.trim() !== "")
+      nuevasRespuestas[preguntaActual.id] = textAnswer;
+
+    setAnswers(nuevasRespuestas);
+
+    const preguntaAnterior = menteeQuestions[paso - 1];
+    const guardada = nuevasRespuestas[preguntaAnterior.id];
+
+    if (preguntaAnterior.type === "single")
+      setSelectedOptions(guardada ? [guardada as string] : []);
+    else if (preguntaAnterior.type === "multiple")
+      setSelectedOptions((guardada as string[]) ?? []);
+    else if (preguntaAnterior.type === "scale")
+      setScaleValue((guardada as number) ?? null);
+    else if (preguntaAnterior.type === "text")
+      setTextAnswer((guardada as string) ?? "");
+
+    setPaso(paso - 1);
+  };
+
   const canContinue =
     (preguntaActual.type === "single" && selectedOptions.length > 0) ||
     (preguntaActual.type === "multiple" && selectedOptions.length > 0) ||
@@ -188,6 +218,16 @@ export default function OnboardingPage() {
     <AppLayout showNav={false} bg="bg-white">
       <main className="flex-1 min-h-0 overflow-y-auto px-5 py-10">
         <div className="mx-auto max-w-md">
+          {paso > 0 && (
+            <button
+              onClick={handleBack}
+              className="mb-6 w-9 h-9 flex items-center justify-center rounded-full bg-brand-soft text-brand hover:bg-brand-light transition-colors"
+              aria-label="Volver"
+            >
+              <IoChevronBackOutline className="text-xl" />
+            </button>
+          )}
+
           {/* Barra de progreso */}
           <div className="mb-8">
             <div className="mb-2 flex justify-between text-sm text-gray-400">
