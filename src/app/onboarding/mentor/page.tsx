@@ -72,7 +72,7 @@ export default function MentorOnboardingPage() {
 
   return (
     <AppLayout showNav={false} bg="bg-white">
-      <main className="flex-1 px-5 py-10">
+      <main className="flex-1 min-h-0 overflow-y-auto px-5 py-10">
         <div className="mx-auto max-w-md">
           {/* Barra de progreso */}
           <div className="mb-8">
