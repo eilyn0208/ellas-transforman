@@ -72,7 +72,7 @@ export default function MentorOnboardingPage() {
             { user_id: user.id, answers: nuevasRespuestas },
             { onConflict: "user_id" }
           );
-        if (maError) throw new Error("No se pudo guardar tu evaluación. Intenta de nuevo.");
+        if (maError) throw new Error(JSON.stringify({ code: maError.code, message: maError.message, details: maError.details, hint: maError.hint }));
 
         // Paso 2: perfil de mentora
         const { error: mpError } = await supabase
