@@ -15,6 +15,8 @@ export default function MentorOnboardingPage() {
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [scaleValue, setScaleValue] = useState<number | null>(null);
   const [textAnswer, setTextAnswer] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const preguntaActual = mentorQuestions[paso];
   const porcentaje = ((paso + 1) / mentorQuestions.length) * 100;
@@ -43,78 +45,96 @@ export default function MentorOnboardingPage() {
       setScaleValue(null);
       setTextAnswer("");
     } else {
-      localStorage.setItem("ellas_role", "mentor");
-      localStorage.setItem("ellas_mentor_answers", JSON.stringify(nuevasRespuestas));
-      await supabase.auth.updateUser({ data: { role: "mentor", onboarding_completed: true } });
+      setSaving(true);
+      setSaveError(null);
+
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const full_name = user.user_metadata?.full_name ?? user.user_metadata?.name ?? "";
-          const { error } = await supabase.from("profiles").upsert(
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError || !user) {
+          throw new Error("No se pudo obtener tu sesión. Por favor, vuelve a iniciar sesión.");
+        }
+
+        const full_name = user.user_metadata?.full_name ?? user.user_metadata?.name ?? "";
+
+        // Paso 0: perfil base
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .upsert(
             { id: user.id, full_name, email: user.email ?? "", role: "mentor" },
             { onConflict: "id" }
           );
-          if (error) {
-            console.error("profiles upsert failed:", error);
-          }
+        if (profileError) throw new Error("No se pudo guardar tu perfil. Intenta de nuevo.");
 
-          const { error: maError } = await supabase
-            .from("mentor_assessments")
-            .upsert(
-              { user_id: user.id, answers: nuevasRespuestas },
-              { onConflict: "user_id" }
-            );
-          if (maError) console.error("mentor_assessments upsert failed:", maError);
+        // Paso 1: evaluación de mentora
+        const { error: maError } = await supabase
+          .from("mentor_assessments")
+          .upsert(
+            { user_id: user.id, answers: nuevasRespuestas },
+            { onConflict: "user_id" }
+          );
+        if (maError) throw new Error("No se pudo guardar tu evaluación. Intenta de nuevo.");
 
-          const { error: mpError } = await supabase
-            .from("mentor_profiles")
-            .upsert(
-              {
-                user_id: user.id,
-                name: full_name,
-                role: (nuevasRespuestas.current_area as string) ?? null,
-                expertise: nuevasRespuestas.mentoring_topics ?? null,
-                mentoring_style: (nuevasRespuestas.mentoring_style as string) ?? null,
-                availability: (nuevasRespuestas.mentoring_frequency as string) ?? null,
-              },
-              { onConflict: "user_id" }
-            );
-          if (mpError) console.error("mentor_profiles upsert failed:", mpError);
+        // Paso 2: perfil de mentora
+        const { error: mpError } = await supabase
+          .from("mentor_profiles")
+          .upsert(
+            {
+              user_id: user.id,
+              name: full_name,
+              role: (nuevasRespuestas.current_area as string) ?? null,
+              expertise: nuevasRespuestas.mentoring_topics ?? null,
+              mentoring_style: (nuevasRespuestas.mentoring_style as string) ?? null,
+              availability: (nuevasRespuestas.mentoring_frequency as string) ?? null,
+            },
+            { onConflict: "user_id" }
+          );
+        if (mpError) throw new Error("No se pudo guardar tu perfil de mentora. Intenta de nuevo.");
 
-          const slotLabels = (nuevasRespuestas.availability_slots as string[]) ?? [];
-          if (slotLabels.length > 0) {
-            const DAY_MAP: Record<string, number> = {
-              Lunes: 1, Martes: 2, Miércoles: 3, Jueves: 4,
-              Viernes: 5, Sábado: 6, Domingo: 0,
-            };
-            const slotRows = slotLabels.map((label) => {
-              const [dayPart, timePart] = label.split(" · ");
-              const isPM = timePart.includes("PM");
-              const isAM = timePart.includes("AM");
-              const [hStr, mStr] = timePart.replace(" AM", "").replace(" PM", "").split(":");
-              let hour = parseInt(hStr);
-              const minute = parseInt(mStr);
-              if (isPM && hour !== 12) hour += 12;
-              if (isAM && hour === 12) hour = 0;
-              return { mentor_id: user.id, day_of_week: DAY_MAP[dayPart] ?? 1, hour, minute, label };
-            });
+        // Paso 3: disponibilidad
+        const slotLabels = (nuevasRespuestas.availability_slots as string[]) ?? [];
+        if (slotLabels.length > 0) {
+          const DAY_MAP: Record<string, number> = {
+            Lunes: 1, Martes: 2, Miércoles: 3, Jueves: 4,
+            Viernes: 5, Sábado: 6, Domingo: 0,
+          };
+          const slotRows = slotLabels.map((label) => {
+            const [dayPart, timePart] = label.split(" · ");
+            const isPM = timePart.includes("PM");
+            const isAM = timePart.includes("AM");
+            const [hStr, mStr] = timePart.replace(" AM", "").replace(" PM", "").split(":");
+            let hour = parseInt(hStr);
+            const minute = parseInt(mStr);
+            if (isPM && hour !== 12) hour += 12;
+            if (isAM && hour === 12) hour = 0;
+            return { mentor_id: user.id, day_of_week: DAY_MAP[dayPart] ?? 1, hour, minute, label };
+          });
 
-            const { error: delError } = await supabase
-              .from("mentor_availability")
-              .delete()
-              .eq("mentor_id", user.id);
-            if (delError) console.error("mentor_availability delete failed:", JSON.stringify(delError));
+          const { error: delError } = await supabase
+            .from("mentor_availability")
+            .delete()
+            .eq("mentor_id", user.id);
+          if (delError) throw new Error("No se pudo actualizar tu disponibilidad. Intenta de nuevo.");
 
-            const { error: avError } = await supabase
-              .from("mentor_availability")
-              .insert(slotRows);
-            if (avError) console.error("mentor_availability insert failed:", JSON.stringify(avError));
-          }
+          const { error: avError } = await supabase
+            .from("mentor_availability")
+            .insert(slotRows);
+          if (avError) throw new Error("No se pudo guardar tu disponibilidad. Intenta de nuevo.");
         }
+
+        // Paso 4: marcar onboarding como completado — solo si todo lo anterior fue exitoso
+        const { error: authError } = await supabase.auth.updateUser({
+          data: { role: "mentor", onboarding_completed: true },
+        });
+        if (authError) throw new Error("No se pudo completar el registro. Intenta de nuevo.");
+
+        // Paso 5: persistir en localStorage y navegar — solo si todo fue exitoso
+        localStorage.setItem("ellas_role", "mentor");
+        localStorage.setItem("ellas_mentor_answers", JSON.stringify(nuevasRespuestas));
+        router.push("/onboarding/mentor/results");
       } catch (e) {
-        console.error("profiles upsert failed:", e);
+        setSaveError(e instanceof Error ? e.message : "Ocurrió un error inesperado. Intenta de nuevo.");
+        setSaving(false);
       }
-      router.push("/onboarding/mentor/results");
     }
   };
 
@@ -148,10 +168,11 @@ export default function MentorOnboardingPage() {
   };
 
   const canContinue =
-    (preguntaActual.type === "single" && selectedOptions.length > 0) ||
-    (preguntaActual.type === "multiple" && selectedOptions.length >= (preguntaActual.minSelections ?? 1)) ||
-    (preguntaActual.type === "scale" && scaleValue !== null) ||
-    preguntaActual.type === "text";
+    !saving &&
+    ((preguntaActual.type === "single" && selectedOptions.length > 0) ||
+      (preguntaActual.type === "multiple" && selectedOptions.length >= (preguntaActual.minSelections ?? 1)) ||
+      (preguntaActual.type === "scale" && scaleValue !== null) ||
+      preguntaActual.type === "text");
 
   return (
     <AppLayout showNav={false} bg="bg-white">
@@ -294,12 +315,18 @@ export default function MentorOnboardingPage() {
             </div>
           )}
 
+          {saveError && (
+            <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+              {saveError}
+            </div>
+          )}
+
           <button
             disabled={!canContinue}
             onClick={handleContinue}
-            className="mt-10 w-full rounded-2xl bg-brand py-4 text-lg font-semibold text-white disabled:opacity-40 hover:bg-brand-dark transition-colors"
+            className="mt-6 w-full rounded-2xl bg-brand py-4 text-lg font-semibold text-white disabled:opacity-40 hover:bg-brand-dark transition-colors"
           >
-            Continuar
+            {saving ? "Guardando..." : "Continuar"}
           </button>
 
           <div className="mt-10 rounded-2xl border border-gray-200 bg-gray-50 p-5">
