@@ -174,9 +174,6 @@ function MilestoneCard({ milestone }: { milestone: Milestone }) {
   );
 }
 
-const MOCK_PROFESSIONAL_GOAL =
-  "Quiero convertirme en Product Manager en una startup de tecnología";
-
 export default function RoadmapPage() {
   const router = useRouter();
   const [roadmap, setRoadmap] = useState<Roadmap | null>(null);
@@ -199,12 +196,47 @@ export default function RoadmapPage() {
     setError(false);
 
     try {
+      // 1. Obtener usuario autenticado
+      const { data: { user } } = await supabase.auth.getUser();
+
+      // 2. Leer answers desde Supabase o localStorage como fallback
+      let answers: Record<string, unknown> = {};
+      if (user) {
+        const { data } = await supabase
+          .from("assessments")
+          .select("answers")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (data?.answers) answers = data.answers as Record<string, unknown>;
+      }
+      if (!answers.goals) {
+        const local = localStorage.getItem("ellas_mentee_answers");
+        if (local) {
+          try { answers = JSON.parse(local); } catch { /* ignore */ }
+        }
+      }
+
+      // 3. Contar bookings de la mentee
+      let bookingCount = 0;
+      if (user) {
+        const { count } = await supabase
+          .from("bookings")
+          .select("*", { count: "exact", head: true })
+          .eq("mentee_id", user.id);
+        bookingCount = count ?? 0;
+      }
+
+      // 4. Llamar a la API con datos reales del onboarding
       const res = await fetch("/api/roadmap", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          professionalGoal: MOCK_PROFESSIONAL_GOAL,
-          useMock: true,
+          goals: (answers.goals as string[]) ?? [],
+          interests: (answers.interests as string[]) ?? [],
+          stage: (answers.stage as string) ?? "",
+          bookingCount,
         }),
       });
 

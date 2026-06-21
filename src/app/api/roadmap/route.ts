@@ -1,201 +1,181 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
-import { Type } from "@google/genai";
-import { gemini } from "@/lib/gemini/client";
-import type { Roadmap } from "@/types/roadmap";
+import type { Roadmap, Milestone, RecommendedAction } from "@/types/roadmap";
+import type { MilestoneStatus } from "@/types/roadmap";
 
-// ─── Zod schema ────────────────────────────────────────────────────────────────
+// ─── Goal → Milestone mapping ────────────────────────────────────────────────
 
-const milestoneSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  description: z.string(),
-  status: z.enum(["completed", "in-progress", "locked", "upcoming", "suggested"]),
-  mentorName: z.string().optional(),
-  sessionInfo: z.string().optional(),
-  requiresInfo: z.string().optional(),
-  targetInfo: z.string().optional(),
-  estimatedTime: z.string().optional(),
-});
+interface GoalTemplate {
+  id: string;
+  title: string;
+  description: string;
+  action: RecommendedAction;
+}
 
-const recommendedActionSchema = z.object({
-  title: z.string(),
-  duration: z.string(),
-  ctaLabel: z.string(),
-});
-
-const roadmapSchema = z.object({
-  progressPercent: z.number(),
-  progressSummary: z.string(),
-  completedCount: z.number(),
-  totalCount: z.number(),
-  updatedLabel: z.string(),
-  milestones: z.array(milestoneSchema),
-  recommendedActions: z.array(recommendedActionSchema),
-});
-
-// ─── Gemini response schema ─────────────────────────────────────────────────
-
-const responseSchema = {
-  type: Type.OBJECT,
-  properties: {
-    progressPercent: { type: Type.NUMBER },
-    progressSummary: { type: Type.STRING },
-    completedCount: { type: Type.NUMBER },
-    totalCount: { type: Type.NUMBER },
-    updatedLabel: { type: Type.STRING },
-    milestones: {
-      type: Type.ARRAY,
-      items: {
-        type: Type.OBJECT,
-        properties: {
-          id: { type: Type.STRING },
-          title: { type: Type.STRING },
-          description: { type: Type.STRING },
-          status: { type: Type.STRING },
-          mentorName: { type: Type.STRING },
-          sessionInfo: { type: Type.STRING },
-          requiresInfo: { type: Type.STRING },
-          targetInfo: { type: Type.STRING },
-          estimatedTime: { type: Type.STRING },
-        },
-        required: ["id", "title", "description", "status"],
-      },
-    },
-    recommendedActions: {
-      type: Type.ARRAY,
-      items: {
-        type: Type.OBJECT,
-        properties: {
-          title: { type: Type.STRING },
-          duration: { type: Type.STRING },
-          ctaLabel: { type: Type.STRING },
-        },
-        required: ["title", "duration", "ctaLabel"],
-      },
-    },
+const GOAL_MAP: Record<string, GoalTemplate> = {
+  "Conseguir internship": {
+    id: "conseguir-internship",
+    title: "Aplicar a internships",
+    description: "Identifica 3 programas de internship relevantes y prepara tu aplicación completa con CV y carta.",
+    action: { title: "Buscar convocatorias abiertas", duration: "20 min", ctaLabel: "Buscar" },
   },
-  required: [
-    "progressPercent",
-    "progressSummary",
-    "completedCount",
-    "totalCount",
-    "updatedLabel",
-    "milestones",
-    "recommendedActions",
-  ],
+  "Mejorar LinkedIn": {
+    id: "mejorar-linkedin",
+    title: "Optimizar perfil LinkedIn",
+    description: "Actualiza tu headline, foto, resumen y experiencias con palabras clave del sector.",
+    action: { title: "Revisar headline y foto de perfil", duration: "15 min", ctaLabel: "Abrir" },
+  },
+  "Prepararme para entrevistas": {
+    id: "prep-entrevistas",
+    title: "Entrevistas de práctica",
+    description: "Completa 3 entrevistas simuladas con retroalimentación estructurada.",
+    action: { title: "Agendar mock interview con mentora", duration: "45 min", ctaLabel: "Agendar" },
+  },
+  "Mejorar mi CV": {
+    id: "mejorar-cv",
+    title: "Actualizar tu CV",
+    description: "Reformatea tu CV con logros cuantificables y palabras clave ATS para el sector.",
+    action: { title: "Pedir feedback de CV a mentora", duration: "30 min", ctaLabel: "Empezar" },
+  },
+  "Construir networking": {
+    id: "construir-networking",
+    title: "Construir tu red",
+    description: "Conecta con 5 profesionales del área y asiste a un evento del sector.",
+    action: { title: "Ir a evento de networking", duration: "2 hrs", ctaLabel: "Ver eventos" },
+  },
+  "Entrar a tecnología": {
+    id: "entrar-tech",
+    title: "Primer proyecto técnico",
+    description: "Completa un proyecto básico en tu área de interés para incluir en tu portafolio.",
+    action: { title: "Elegir un curso de introducción", duration: "1–2 sem", ctaLabel: "Explorar" },
+  },
+  "Ganar claridad profesional": {
+    id: "claridad-profesional",
+    title: "Sesión de claridad",
+    description: "Trabaja con una mentora para definir tus fortalezas y el camino más alineado contigo.",
+    action: { title: "Agendar sesión de claridad", duration: "45 min", ctaLabel: "Agendar" },
+  },
+  "Sentirme más segura": {
+    id: "confianza-personal",
+    title: "Desarrollar confianza",
+    description: "Participa en un workshop de autoconfianza y habla en al menos un espacio grupal.",
+    action: { title: "Unirse a workshop de confianza", duration: "1 hr", ctaLabel: "RSVP" },
+  },
+  "Crear un plan profesional": {
+    id: "plan-profesional",
+    title: "Plan de carrera 6 meses",
+    description: "Define tus metas, recursos y próximos pasos concretos para los próximos 6 meses.",
+    action: { title: "Sesión de planificación con mentora", duration: "1 hr", ctaLabel: "Agendar" },
+  },
+  "Desarrollar liderazgo": {
+    id: "liderazgo",
+    title: "Liderazgo personal",
+    description: "Lidera un proyecto o iniciativa pequeña para desarrollar habilidades de impacto.",
+    action: { title: "Explorar programa de liderazgo", duration: "2 hrs/sem", ctaLabel: "Explorar" },
+  },
+  "Aprender de mujeres con experiencia": {
+    id: "primera-mentoria",
+    title: "Primera sesión de mentoría",
+    description: "Agenda tu primera sesión con una mentora y establece tus expectativas de crecimiento.",
+    action: { title: "Conocer mentoras disponibles", duration: "10 min", ctaLabel: "Descubrir" },
+  },
+  "Descubrir qué estudiar": {
+    id: "explorar-opciones",
+    title: "Explorar opciones académicas",
+    description: "Haz un test de intereses y habla con profesionales de 2–3 carreras distintas.",
+    action: { title: "Sesión de orientación vocacional", duration: "45 min", ctaLabel: "Agendar" },
+  },
 };
 
-// ─── System prompt ──────────────────────────────────────────────────────────
+const FALLBACK_TEMPLATE: GoalTemplate = {
+  id: "claridad-inicio",
+  title: "Definir tu punto de partida",
+  description: "Identifica tus fortalezas actuales y establece una meta concreta para los próximos 3 meses.",
+  action: { title: "Primera sesión con mentora", duration: "45 min", ctaLabel: "Agendar" },
+};
 
-const SYSTEM_PROMPT = `Eres parte de "Ellas Transforman", una plataforma de mentoría para mujeres jóvenes en tecnología y negocios.
+// ─── Builder determinístico ─────────────────────────────────────────────────
 
-A partir de la meta profesional y el contexto de la mentee, genera un roadmap personalizado de crecimiento profesional.
+function buildRoadmapFromAnswers(
+  goals: string[],
+  interests: string[],
+  stage: string,
+  bookingCount: number
+): Roadmap {
+  const activeGoals = goals.length > 0 ? goals.slice(0, 4) : ["Ganar claridad profesional"];
 
-El roadmap debe tener:
-- Entre 4 y 6 milestones concretos y accionables ordenados por progresión lógica
-- Asigna status realistas: los primeros 1-2 como "completed" o "in-progress", luego "upcoming", "locked" y/o "suggested"
-- 3 acciones recomendadas inmediatas y específicas
+  // Status progression depends on whether user has bookings
+  const statusSequence: MilestoneStatus[] = bookingCount > 0
+    ? ["completed", "in-progress", "upcoming", "locked"]
+    : ["in-progress", "upcoming", "locked", "suggested"];
 
-Para cada milestone incluye:
-- id: slug corto (ej: "portfolio-update")
-- title: nombre corto del hito (máx 5 palabras)
-- description: 1-2 frases concretas de lo que implica
-- status: "completed" | "in-progress" | "locked" | "upcoming" | "suggested"
-- mentorName (solo si completed o in-progress): nombre ficticio de mentora
-- sessionInfo (solo si in-progress): próxima sesión disponible
-- requiresInfo (solo si locked): qué necesita completar antes
-- targetInfo (solo si upcoming): meta numérica o concreta
-- estimatedTime (solo si suggested): tiempo estimado
+  const milestones: Milestone[] = [];
+  const recommendedActions: RecommendedAction[] = [];
 
-progressSummary: frase motivadora que resuma el progreso actual
-updatedLabel: "Actualizado hoy" (siempre)
+  activeGoals.forEach((goal, index) => {
+    const template = GOAL_MAP[goal] ?? { ...FALLBACK_TEMPLATE, id: `goal-${index}` };
+    const status = statusSequence[index] ?? "suggested";
 
-Responde en español. Tono: motivador, concreto, cercano.`;
+    const milestone: Milestone = {
+      id: template.id,
+      title: template.title,
+      description: template.description,
+      status,
+    };
 
-// ─── Mock para desarrollo (eliminar cuando Gemini + Supabase estén integrados) ──
+    if (status === "completed") {
+      milestone.mentorName = "Mentora Ellas Transforman";
+    }
+    if (status === "in-progress") {
+      milestone.mentorName = "Mentora disponible";
+      milestone.sessionInfo = "Próx. sesión disponible · 45 min";
+    }
+    if (status === "locked") {
+      const prev = activeGoals[index - 1];
+      milestone.requiresInfo = `Requiere completar: ${GOAL_MAP[prev]?.title ?? "hito anterior"}`;
+    }
+    if (status === "upcoming") {
+      milestone.targetInfo = "Meta: completar este mes";
+    }
+    if (status === "suggested") {
+      milestone.estimatedTime = "Est. tiempo: 2–4 semanas";
+    }
 
-function getMockRoadmap(professionalGoal: string): Roadmap {
-  const isProduct = /product|producto|pm/i.test(professionalGoal);
-  const isDesign = /diseño|design|ux|ui/i.test(professionalGoal);
-  const isTech = /tech|programar|developer|código|data|ia|ai/i.test(professionalGoal);
+    milestones.push(milestone);
 
-  const baseTitle = isProduct
-    ? "Product Manager"
-    : isDesign
-    ? "UX Designer"
-    : isTech
-    ? "Desarrolladora"
-    : "profesional en tech";
+    if (recommendedActions.length < 3) {
+      recommendedActions.push(template.action);
+    }
+  });
+
+  const completedCount = milestones.filter((m) => m.status === "completed").length;
+  const totalCount = milestones.length;
+  const rawPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+  const progressPercent = Math.max(rawPercent, bookingCount > 0 ? 20 : 10);
+
+  const interestLabel =
+    interests.length > 0 ? interests.slice(0, 2).join(" y ") : "tecnología y negocios";
+  const stageLabel = stage ? ` · Etapa: ${stage}` : "";
 
   return {
-    progressPercent: 35,
-    progressSummary: `Vas por buen camino hacia tu meta como ${baseTitle}. Sigue el momentum esta semana.`,
-    completedCount: 2,
-    totalCount: 5,
+    progressPercent,
+    progressSummary: `Vas bien en tu camino hacia ${interestLabel}${stageLabel}. Sigue el momentum esta semana.`,
+    completedCount,
+    totalCount,
     updatedLabel: "Actualizado hoy",
-    milestones: [
-      {
-        id: "portfolio-update",
-        title: "Actualizar tu portafolio",
-        description: `Agrega casos de estudio relevantes para ${baseTitle} con métricas de impacto.`,
-        status: "completed",
-        mentorName: "Mariana Álvarez",
-      },
-      {
-        id: "mock-interviews",
-        title: "Entrevistas de práctica",
-        description: "Completa 3 entrevistas simuladas con retroalimentación estructurada.",
-        status: "in-progress",
-        sessionInfo: "Próx. sesión: Vie · 45 min",
-        mentorName: "Ana García",
-      },
-      {
-        id: "networking",
-        title: "Construir tu red",
-        description: "Conecta con 5 profesionales del área y asiste a un evento del sector.",
-        status: "locked",
-        requiresInfo: "Requiere: completar portafolio + 1 entrevista",
-      },
-      {
-        id: "job-applications",
-        title: `Aplicar a roles de ${baseTitle}`,
-        description: "Envía aplicaciones con CV y carta de presentación personalizados.",
-        status: "upcoming",
-        targetInfo: "Meta: 3 aplicaciones este mes",
-      },
-      {
-        id: "case-study",
-        title: "Caso de estudio real",
-        description: "Desarrolla un experimento de 4 semanas y documenta resultados.",
-        status: "suggested",
-        estimatedTime: "Est. tiempo: 4 semanas",
-      },
-    ],
-    recommendedActions: [
-      {
-        title: "Revisar métricas de tu portafolio",
-        duration: "15–30 min",
-        ctaLabel: "Empezar",
-      },
-      {
-        title: "Agendar entrevista de práctica",
-        duration: "45 min",
-        ctaLabel: "Agendar",
-      },
-      {
-        title: "Sesión de planificación grupal",
-        duration: "1 hr · Mar",
-        ctaLabel: "RSVP",
-      },
-    ],
+    milestones,
+    recommendedActions,
   };
 }
 
 // ─── Handler ────────────────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
-  let body: { professionalGoal?: string; useMock?: boolean };
+  let body: {
+    goals?: string[];
+    interests?: string[];
+    stage?: string;
+    bookingCount?: number;
+  };
 
   try {
     body = await request.json();
@@ -203,61 +183,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
   }
 
-  const { professionalGoal, useMock } = body;
+  const goals = Array.isArray(body.goals) ? body.goals : [];
+  const interests = Array.isArray(body.interests) ? body.interests : [];
+  const stage = typeof body.stage === "string" ? body.stage : "";
+  const bookingCount = typeof body.bookingCount === "number" ? body.bookingCount : 0;
 
-  if (!professionalGoal || typeof professionalGoal !== "string") {
-    return NextResponse.json({ error: "Meta profesional requerida" }, { status: 400 });
-  }
-
-  // TODO(supabase): recuperar respuestas de onboarding del usuario autenticado
-  // const supabase = createSupabaseServerClient();
-  // const { data: session } = await supabase.auth.getSession();
-  // const { data: onboardingAnswers } = await supabase
-  //   .from("mentee_onboarding")
-  //   .select("answers")
-  //   .eq("user_id", session.user.id)
-  //   .single();
-
-  if (useMock || process.env.USE_MOCK_ROADMAP === "true") {
-    return NextResponse.json(getMockRoadmap(professionalGoal));
-  }
-
-  try {
-    const response = await gemini.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: `La mentee quiere: ${professionalGoal}`,
-      config: {
-        systemInstruction: SYSTEM_PROMPT,
-        responseMimeType: "application/json",
-        responseSchema,
-      },
-    });
-
-    const texto = response.text;
-
-    if (!texto) {
-      console.error("Gemini devolvió respuesta vacía:", JSON.stringify(response.candidates));
-      return NextResponse.json(getMockRoadmap(professionalGoal));
-    }
-
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(texto);
-    } catch {
-      console.error("JSON inválido de Gemini:", texto);
-      return NextResponse.json(getMockRoadmap(professionalGoal));
-    }
-
-    const result = roadmapSchema.safeParse(parsed);
-
-    if (!result.success) {
-      console.error("Validación fallida:", result.error);
-      return NextResponse.json(getMockRoadmap(professionalGoal));
-    }
-
-    return NextResponse.json(result.data);
-  } catch (error) {
-    console.error("Error generando roadmap con IA:", error);
-    return NextResponse.json(getMockRoadmap(professionalGoal));
-  }
+  return NextResponse.json(
+    buildRoadmapFromAnswers(goals, interests, stage, bookingCount)
+  );
 }
