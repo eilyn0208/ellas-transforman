@@ -28,7 +28,7 @@ const GOAL_MAP: Record<string, GoalTemplate> = {
     id: "prep-entrevistas",
     title: "Entrevistas de práctica",
     description: "Completa 3 entrevistas simuladas con retroalimentación estructurada.",
-    action: { title: "Agendar mock interview con mentora", duration: "45 min", ctaLabel: "Agendar" },
+    action: { title: "Agendar mock interview con mentora", duration: "30 min", ctaLabel: "Agendar" },
   },
   "Mejorar mi CV": {
     id: "mejorar-cv",
@@ -52,7 +52,7 @@ const GOAL_MAP: Record<string, GoalTemplate> = {
     id: "claridad-profesional",
     title: "Sesión de claridad",
     description: "Trabaja con una mentora para definir tus fortalezas y el camino más alineado contigo.",
-    action: { title: "Agendar sesión de claridad", duration: "45 min", ctaLabel: "Agendar" },
+    action: { title: "Agendar sesión de claridad", duration: "30 min", ctaLabel: "Agendar" },
   },
   "Sentirme más segura": {
     id: "confianza-personal",
@@ -82,7 +82,7 @@ const GOAL_MAP: Record<string, GoalTemplate> = {
     id: "explorar-opciones",
     title: "Explorar opciones académicas",
     description: "Haz un test de intereses y habla con profesionales de 2–3 carreras distintas.",
-    action: { title: "Sesión de orientación vocacional", duration: "45 min", ctaLabel: "Agendar" },
+    action: { title: "Sesión de orientación vocacional", duration: "30 min", ctaLabel: "Agendar" },
   },
 };
 
@@ -90,7 +90,7 @@ const FALLBACK_TEMPLATE: GoalTemplate = {
   id: "claridad-inicio",
   title: "Definir tu punto de partida",
   description: "Identifica tus fortalezas actuales y establece una meta concreta para los próximos 3 meses.",
-  action: { title: "Primera sesión con mentora", duration: "45 min", ctaLabel: "Agendar" },
+  action: { title: "Primera sesión con mentora", duration: "30 min", ctaLabel: "Agendar" },
 };
 
 // ─── Builder determinístico ─────────────────────────────────────────────────
@@ -127,7 +127,7 @@ function buildRoadmapFromAnswers(
     }
     if (status === "in-progress") {
       milestone.mentorName = "Mentora disponible";
-      milestone.sessionInfo = "Próx. sesión disponible · 45 min";
+      milestone.sessionInfo = "Próx. sesión disponible · 30 min";
     }
     if (status === "locked") {
       const prev = activeGoals[index - 1];

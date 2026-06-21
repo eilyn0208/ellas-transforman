@@ -7,6 +7,7 @@ export interface AssessmentQuestion {
   subtitle?: string;
   type: QuestionType;
   options?: string[];
+  minSelections?: number;
   maxSelections?: number;
   min?: number;
   max?: number;

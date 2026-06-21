@@ -150,4 +150,26 @@ export const mentorQuestions: AssessmentQuestion[] = [
     placeholder:
       "Ej. Quiero ayudar a otras mujeres a tener las oportunidades que yo no tuve.",
   },
+
+  {
+    id: "availability_slots",
+    question: "¿Cuándo estás disponible para sesiones?",
+    type: "multiple",
+    minSelections: 3,
+    maxSelections: 5,
+    options: [
+      "Lunes · 9:00 AM",
+      "Lunes · 2:00 PM",
+      "Martes · 10:00 AM",
+      "Martes · 4:00 PM",
+      "Miércoles · 9:00 AM",
+      "Miércoles · 3:00 PM",
+      "Jueves · 10:00 AM",
+      "Jueves · 4:00 PM",
+      "Viernes · 9:00 AM",
+      "Viernes · 3:00 PM",
+      "Sábado · 10:00 AM",
+      "Sábado · 12:00 PM",
+    ],
+  },
 ];

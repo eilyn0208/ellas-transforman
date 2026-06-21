@@ -170,20 +170,12 @@ function MenteeUpcomingSession({ data }: { data: MenteeDashboardData }) {
             <IoLocationOutline className="text-sm" />
             {session.locationType}
           </span>
-          <div className="flex gap-2">
-            <button
-              onClick={() => router.push(`/booking/${session.mentorId}`)}
-              className="px-4 py-1.5 bg-brand text-white text-xs font-semibold rounded-full hover:opacity-90 transition-opacity"
-            >
-              Unirme
-            </button>
-            <button
-              onClick={() => router.push(`/booking/${session.mentorId}`)}
-              className="px-4 py-1.5 border border-gray-200 text-gray-600 text-xs font-semibold rounded-full hover:bg-gray-50 transition-colors"
-            >
-              Detalles
-            </button>
-          </div>
+          <button
+            onClick={() => router.push("/sessions")}
+            className="px-4 py-1.5 bg-brand text-white text-xs font-semibold rounded-full hover:opacity-90 transition-opacity"
+          >
+            Ver sesión
+          </button>
         </div>
       </div>
     </section>
@@ -385,9 +377,11 @@ function MenteeDashboard({
 
   const rightSlot = (
     <>
-      <button className="w-9 h-9 rounded-full bg-brand-soft flex items-center justify-center text-brand hover:bg-brand-light transition-colors relative">
+      <button
+        onClick={() => router.push("/notifications")}
+        className="w-9 h-9 rounded-full bg-brand-soft flex items-center justify-center text-brand hover:bg-brand-light transition-colors relative"
+      >
         <IoNotificationsOutline className="text-lg" />
-        <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-400 rounded-full" />
       </button>
       <button
         onClick={() => router.push("/messages")}
@@ -703,9 +697,11 @@ function MentorDashboard({
 
   const rightSlot = (
     <>
-      <button className="w-9 h-9 rounded-full bg-brand-soft flex items-center justify-center text-brand hover:bg-brand-soft/80 transition-colors relative">
+      <button
+        onClick={() => router.push("/notifications")}
+        className="w-9 h-9 rounded-full bg-brand-soft flex items-center justify-center text-brand hover:bg-brand-soft/80 transition-colors relative"
+      >
         <IoNotificationsOutline className="text-lg" />
-        <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-amber-400 rounded-full" />
       </button>
       <button
         onClick={() => router.push("/messages")}
@@ -830,7 +826,8 @@ export default function HomePage() {
             supabase
               .from("bookings")
               .select("*", { count: "exact", head: true })
-              .eq("mentee_id", user.id),
+              .eq("mentee_id", user.id)
+              .eq("status", "confirmed"),
           ]);
 
           const bk = bkRes.data;
@@ -843,9 +840,9 @@ export default function HomePage() {
               mentorName:   bk.mentor_name,
               mentorRole:   "Mentora",
               mentorAvatar: "👩‍💼",
-              dateLabel:    dt.toLocaleDateString("es-MX", { weekday: "short", month: "short", day: "numeric" }),
-              startTime:    dt.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" }),
-              endTime:      end.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" }),
+              dateLabel:    dt.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" }),
+              startTime:    dt.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false }),
+              endTime:      end.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false }),
               locationType: "Online · 1:1",
               mentorId:     bk.mentor_id,
             };
@@ -950,7 +947,8 @@ export default function HomePage() {
           const { data: mentorRows } = await supabase
             .from("bookings")
             .select("id, mentee_id, scheduled_at, duration_min, location_type, status")
-            .eq("mentor_id", user.id);
+            .eq("mentor_id", user.id)
+            .neq("status", "cancelled");
 
           const allBookings = mentorRows ?? [];
           const nowIso = new Date().toISOString();
@@ -992,7 +990,7 @@ export default function HomePage() {
                 menteeName: profileMap.get(nextBk.mentee_id) ?? "Mentee",
                 menteeAvatar: "👩‍💻",
                 menteeGoal: "Meta profesional",
-                dateLabel: dt.toLocaleDateString("es-MX", { weekday: "short", month: "short", day: "numeric" }),
+                dateLabel: dt.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" }),
                 startTime: dt.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false }),
                 endTime: end.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false }),
                 locationType: nextBk.location_type,
@@ -1004,13 +1002,16 @@ export default function HomePage() {
               const mBookings = allBookings.filter((b) => b.mentee_id === mid);
               const pastMBookings = mBookings.filter((b) => b.scheduled_at <= nowIso);
               const lastPast = [...pastMBookings].sort((a, b) => b.scheduled_at.localeCompare(a.scheduled_at))[0];
+              const futureMBookings = mBookings.filter((b) => b.scheduled_at > nowIso);
               const daysSince = lastPast
                 ? Math.floor((Date.now() - new Date(lastPast.scheduled_at).getTime()) / 86_400_000)
-                : 999;
+                : null;
               const lastActivityLabel =
-                daysSince === 0 ? "Hoy" :
-                daysSince === 1 ? "Ayer" :
-                `Hace ${daysSince} días`;
+                daysSince === null
+                  ? (futureMBookings.length > 0 ? "Sesión próxima" : "Sin actividad")
+                  : daysSince === 0 ? "Hoy"
+                  : daysSince === 1 ? "Ayer"
+                  : `Hace ${daysSince} días`;
               return {
                 id: mid,
                 name: profileMap.get(mid) ?? "Mentee",
@@ -1018,7 +1019,7 @@ export default function HomePage() {
                 goal: "Meta profesional",
                 progressPercent: Math.min(100, mBookings.length * 12),
                 lastActivityLabel,
-                needsAttention: daysSince > 14,
+                needsAttention: daysSince !== null && daysSince > 14,
               };
             });
           }

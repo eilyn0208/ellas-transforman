@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import {
@@ -8,6 +8,9 @@ import {
   IoLinkOutline,
   IoLocationOutline,
   IoDocumentOutline,
+  IoChevronBackOutline,
+  IoChevronForwardOutline,
+  IoCloseCircleOutline,
 } from "react-icons/io5";
 import type { SessionType, WeekDay, SessionEvent, WeekStats } from "@/types/sessions";
 import { SESSION_FILTER_TYPES } from "@/constants/sessions";
@@ -15,6 +18,7 @@ import AppHeader from "@/components/AppHeader";
 import AppLayout from "@/components/AppLayout";
 
 const DAY_LABELS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+const MONTH_SHORT = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 const TIMELINE_START = 8;
 const TIMELINE_END = 18;
 
@@ -33,8 +37,10 @@ function getWeekDays(ref: Date): WeekDay[] {
   return Array.from({ length: 7 }, (_, i) => {
     const day = new Date(d);
     day.setDate(d.getDate() + i);
+    // Build date string in local timezone to match bookingToEvent's local-date extraction
+    const localDate = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
     return {
-      date: day.toISOString().split("T")[0],
+      date: localDate,
       dayLabel: DAY_LABELS[i],
       dayNumber: day.getDate(),
       dayOfWeek: i,
@@ -56,7 +62,9 @@ function bookingToEvent(
   partyRole: string,
   dateToWeekDow: Map<string, number>
 ): SessionEvent | null {
-  const dateStr = b.scheduled_at.split("T")[0];
+  // Use local date string (YYYY-MM-DD) so timezone doesn't shift the calendar day
+  const dtObj = new Date(b.scheduled_at);
+  const dateStr = `${dtObj.getFullYear()}-${String(dtObj.getMonth() + 1).padStart(2, "0")}-${String(dtObj.getDate()).padStart(2, "0")}`;
   const dow = dateToWeekDow.get(dateStr);
   if (dow === undefined) return null;
 
@@ -98,16 +106,26 @@ function computeWeekStats(events: SessionEvent[], totalDurMins: number): WeekSta
 
 export default function SessionsPage() {
   const router = useRouter();
-  const weekDays = useMemo(() => getWeekDays(new Date()), []);
+  const [refWeek, setRefWeek] = useState(() => new Date());
+  const weekDays = useMemo(() => getWeekDays(refWeek), [refWeek]);
 
-  const todayIndex = weekDays.find((d) => d.isToday)?.dayOfWeek;
-  const [selectedDow, setSelectedDow] = useState<number>(todayIndex ?? 0);
+  const [selectedDow, setSelectedDow] = useState<number>(() => {
+    const today = getWeekDays(new Date());
+    return today.find((d) => d.isToday)?.dayOfWeek ?? 0;
+  });
+
+  const prevWeek = () => setRefWeek((d) => { const n = new Date(d); n.setDate(d.getDate() - 7); return n; });
+  const nextWeek = () => setRefWeek((d) => { const n = new Date(d); n.setDate(d.getDate() + 7); return n; });
   const [showFilter, setShowFilter] = useState(false);
   const [activeFilters, setActiveFilters] = useState<Set<string>>(
     new Set(SESSION_FILTER_TYPES.map((f) => f.id))
   );
   const [role, setRole] = useState<"mentee" | "mentor">("mentee");
   const [liveEvents, setLiveEvents] = useState<SessionEvent[]>([]);
+  const durMinRef = useRef<Map<string, number>>(new Map());
+  const [weekTotalMins, setWeekTotalMins] = useState(0);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState(false);
   const [weekStats, setWeekStats] = useState<WeekStats>({
     sessionsCount: 0,
     nextSessionLabel: "—",
@@ -128,14 +146,18 @@ export default function SessionsPage() {
       const dateToWeekDow = new Map(weekDays.map((d) => [d.date, d.dayOfWeek]));
       const weekStart = weekDays[0].date;
       const weekEnd = weekDays[6].date;
+      // Use local-timezone midnight so dates match the visible calendar days
+      const weekStartIso = new Date(weekStart + "T00:00:00").toISOString();
+      const weekEndIso   = new Date(weekEnd   + "T23:59:59.999").toISOString();
 
       if (r === "mentor") {
         const { data: bkRows } = await supabase
           .from("bookings")
           .select("id, mentee_id, scheduled_at, duration_min, location_type, slot_label")
           .eq("mentor_id", user.id)
-          .gte("scheduled_at", weekStart + "T00:00:00.000Z")
-          .lte("scheduled_at", weekEnd + "T23:59:59.999Z");
+          .neq("status", "cancelled")
+          .gte("scheduled_at", weekStartIso)
+          .lte("scheduled_at", weekEndIso);
 
         const bookings = bkRows ?? [];
         const menteeIds = [...new Set(bookings.map((b) => b.mentee_id))].filter(Boolean) as string[];
@@ -154,6 +176,8 @@ export default function SessionsPage() {
           .filter((e): e is SessionEvent => e !== null);
 
         const totalMins = bookings.reduce((s, b) => s + (b.duration_min ?? 30), 0);
+        durMinRef.current = new Map(bookings.map((b) => [b.id, b.duration_min ?? 30]));
+        setWeekTotalMins(totalMins);
         setLiveEvents(events);
         setWeekStats(computeWeekStats(events, totalMins));
       } else {
@@ -161,8 +185,9 @@ export default function SessionsPage() {
           .from("bookings")
           .select("id, mentor_name, scheduled_at, duration_min, location_type, slot_label")
           .eq("mentee_id", user.id)
-          .gte("scheduled_at", weekStart + "T00:00:00.000Z")
-          .lte("scheduled_at", weekEnd + "T23:59:59.999Z");
+          .neq("status", "cancelled")
+          .gte("scheduled_at", weekStartIso)
+          .lte("scheduled_at", weekEndIso);
 
         const bookings = bkRows ?? [];
         const events = bookings
@@ -170,6 +195,8 @@ export default function SessionsPage() {
           .filter((e): e is SessionEvent => e !== null);
 
         const totalMins = bookings.reduce((s, b) => s + (b.duration_min ?? 30), 0);
+        durMinRef.current = new Map(bookings.map((b) => [b.id, b.duration_min ?? 30]));
+        setWeekTotalMins(totalMins);
         setLiveEvents(events);
         setWeekStats(computeWeekStats(events, totalMins));
       }
@@ -183,6 +210,24 @@ export default function SessionsPage() {
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
+
+  const handleCancel = async (bookingId: string) => {
+    setCancelling(true);
+    const { error } = await supabase
+      .from("bookings")
+      .update({ status: "cancelled" })
+      .eq("id", bookingId);
+    if (!error) {
+      const nextEvents = liveEvents.filter((e) => e.id !== bookingId);
+      const cancelledMins = durMinRef.current.get(bookingId) ?? 30;
+      const newTotalMins = weekTotalMins - cancelledMins;
+      setLiveEvents(nextEvents);
+      setWeekTotalMins(newTotalMins);
+      setWeekStats(computeWeekStats(nextEvents, newTotalMins));
+    }
+    setCancelling(false);
+    setCancellingId(null);
+  };
 
   const dayEvents = liveEvents.filter(
     (e) => e.dayOfWeek === selectedDow && activeFilters.has(e.type)
@@ -213,9 +258,24 @@ export default function SessionsPage() {
         <AppHeader
           shadow={false}
           rightSlot={
-            <span className="text-sm font-semibold text-gray-500">
-              Esta semana
-            </span>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={prevWeek}
+                className="w-7 h-7 rounded-full bg-brand-soft text-brand flex items-center justify-center hover:bg-brand-light transition-colors"
+              >
+                <IoChevronBackOutline size={13} />
+              </button>
+              <span className="text-xs font-semibold text-gray-500 min-w-[80px] text-center">
+                {weekDays[0].dayNumber}–{weekDays[6].dayNumber}{" "}
+                {MONTH_SHORT[new Date(weekDays[0].date + "T00:00:00").getMonth()]}
+              </span>
+              <button
+                onClick={nextWeek}
+                className="w-7 h-7 rounded-full bg-brand-soft text-brand flex items-center justify-center hover:bg-brand-light transition-colors"
+              >
+                <IoChevronForwardOutline size={13} />
+              </button>
+            </div>
           }
         />
         <div className="flex justify-between gap-1 px-5 pb-4">
@@ -329,6 +389,33 @@ export default function SessionsPage() {
                               </span>
                             )}
                           </div>
+                        )}
+
+                        {cancellingId === event.id ? (
+                          <div className="mt-3 p-3 bg-red-50 rounded-xl flex items-center gap-2">
+                            <p className="text-[11px] text-red-700 flex-1 font-medium">¿Cancelar esta sesión?</p>
+                            <button
+                              disabled={cancelling}
+                              onClick={() => handleCancel(event.id)}
+                              className="px-3 py-1.5 bg-red-500 text-white text-[11px] font-semibold rounded-full hover:bg-red-600 transition-colors disabled:opacity-50"
+                            >
+                              {cancelling ? "..." : "Sí, cancelar"}
+                            </button>
+                            <button
+                              onClick={() => setCancellingId(null)}
+                              className="px-3 py-1.5 border border-gray-200 text-gray-500 text-[11px] font-semibold rounded-full hover:bg-gray-50 transition-colors"
+                            >
+                              No
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setCancellingId(event.id)}
+                            className="mt-3 w-full flex items-center justify-center gap-1.5 px-3 py-2 border border-red-200 text-red-500 text-xs font-semibold rounded-full hover:bg-red-50 transition-colors"
+                          >
+                            <IoCloseCircleOutline size={14} />
+                            Cancelar sesión
+                          </button>
                         )}
                       </div>
                     </div>

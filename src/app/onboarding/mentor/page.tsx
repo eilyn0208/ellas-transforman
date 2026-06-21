@@ -60,20 +60,56 @@ export default function MentorOnboardingPage() {
 
           const { error: maError } = await supabase
             .from("mentor_assessments")
-            .insert({ user_id: user.id, answers: nuevasRespuestas });
-          if (maError) console.error("mentor_assessments insert failed:", maError);
+            .upsert(
+              { user_id: user.id, answers: nuevasRespuestas },
+              { onConflict: "user_id" }
+            );
+          if (maError) console.error("mentor_assessments upsert failed:", maError);
 
           const { error: mpError } = await supabase
             .from("mentor_profiles")
-            .insert({
-              user_id: user.id,
-              name: full_name,
-              role: (nuevasRespuestas.current_area as string) ?? null,
-              expertise: nuevasRespuestas.mentoring_topics ?? null,
-              mentoring_style: (nuevasRespuestas.mentoring_style as string) ?? null,
-              availability: (nuevasRespuestas.mentoring_frequency as string) ?? null,
+            .upsert(
+              {
+                user_id: user.id,
+                name: full_name,
+                role: (nuevasRespuestas.current_area as string) ?? null,
+                expertise: nuevasRespuestas.mentoring_topics ?? null,
+                mentoring_style: (nuevasRespuestas.mentoring_style as string) ?? null,
+                availability: (nuevasRespuestas.mentoring_frequency as string) ?? null,
+              },
+              { onConflict: "user_id" }
+            );
+          if (mpError) console.error("mentor_profiles upsert failed:", mpError);
+
+          const slotLabels = (nuevasRespuestas.availability_slots as string[]) ?? [];
+          if (slotLabels.length > 0) {
+            const DAY_MAP: Record<string, number> = {
+              Lunes: 1, Martes: 2, Miércoles: 3, Jueves: 4,
+              Viernes: 5, Sábado: 6, Domingo: 0,
+            };
+            const slotRows = slotLabels.map((label) => {
+              const [dayPart, timePart] = label.split(" · ");
+              const isPM = timePart.includes("PM");
+              const isAM = timePart.includes("AM");
+              const [hStr, mStr] = timePart.replace(" AM", "").replace(" PM", "").split(":");
+              let hour = parseInt(hStr);
+              const minute = parseInt(mStr);
+              if (isPM && hour !== 12) hour += 12;
+              if (isAM && hour === 12) hour = 0;
+              return { mentor_id: user.id, day_of_week: DAY_MAP[dayPart] ?? 1, hour, minute, label };
             });
-          if (mpError) console.error("mentor_profiles insert failed:", mpError);
+
+            const { error: delError } = await supabase
+              .from("mentor_availability")
+              .delete()
+              .eq("mentor_id", user.id);
+            if (delError) console.error("mentor_availability delete failed:", JSON.stringify(delError));
+
+            const { error: avError } = await supabase
+              .from("mentor_availability")
+              .insert(slotRows);
+            if (avError) console.error("mentor_availability insert failed:", JSON.stringify(avError));
+          }
         }
       } catch (e) {
         console.error("profiles upsert failed:", e);
@@ -113,7 +149,7 @@ export default function MentorOnboardingPage() {
 
   const canContinue =
     (preguntaActual.type === "single" && selectedOptions.length > 0) ||
-    (preguntaActual.type === "multiple" && selectedOptions.length > 0) ||
+    (preguntaActual.type === "multiple" && selectedOptions.length >= (preguntaActual.minSelections ?? 1)) ||
     (preguntaActual.type === "scale" && scaleValue !== null) ||
     preguntaActual.type === "text";
 
@@ -151,7 +187,9 @@ export default function MentorOnboardingPage() {
 
           {preguntaActual.type === "multiple" && (
             <p className="mb-8 text-lg text-gray-400">
-              Puedes seleccionar hasta {preguntaActual.maxSelections || 3} opciones.
+              {preguntaActual.minSelections
+                ? `Elige entre ${preguntaActual.minSelections} y ${preguntaActual.maxSelections ?? 3} opciones.`
+                : `Puedes seleccionar hasta ${preguntaActual.maxSelections || 3} opciones.`}
             </p>
           )}
 
