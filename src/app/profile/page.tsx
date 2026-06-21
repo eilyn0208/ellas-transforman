@@ -34,14 +34,9 @@ function useProfileData(): {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
 
-      console.log("[profile] user.id:", user?.id ?? "null (no autenticado)");
-      console.log("[profile] user_metadata.role:", user?.user_metadata?.role);
-      console.log("[profile] localStorage ellas_role:", localStorage.getItem("ellas_role"));
-
       const role = user?.user_metadata?.role ?? localStorage.getItem("ellas_role");
       const isMentor = role === "mentor" || role === "mentora";
 
-      console.log("[profile] isMentor branch:", isMentor);
       const authName =
         user?.user_metadata?.full_name ??
         user?.user_metadata?.name ??
@@ -57,9 +52,6 @@ function useProfileData(): {
               .maybeSingle()
           : { data: null, error: null };
 
-        console.log("[profile] mentor_profiles query error:", mpError);
-        console.log("[profile] mentor_profiles mp completo:", JSON.stringify(mp));
-
         const expertise: string[] = Array.isArray(mp?.expertise)
           ? (mp!.expertise as unknown as string[])
           : [];
@@ -68,9 +60,6 @@ function useProfileData(): {
 
         setMentorRole((mp?.role as string | null) ?? null);
         setAvailability((mp?.availability as string | null) ?? null);
-
-        console.log("[profile] setMentorRole →", (mp?.role as string | null) ?? null);
-        console.log("[profile] setAvailability →", (mp?.availability as string | null) ?? null);
 
         setProfile({
           ...mockMentorProfile,
@@ -203,7 +192,6 @@ export default function ProfilePage() {
   }
 
   const isMentee = profile.role === "mentee";
-  console.log("[profile] render → profile.role:", profile.role, "| isMentee:", isMentee, "| mentorRole:", mentorRole, "| availability:", availability);
 
   return (
     <AppLayout>
