@@ -799,12 +799,41 @@ export default function HomePage() {
         "—";
 
       if (resolvedRole === "mentee") {
+        let upcomingSession: import("@/types/home").UpcomingBookingSession | null = null;
+        if (user) {
+          const { data: bk } = await supabase
+            .from("bookings")
+            .select("id, mentor_id, mentor_name, slot_label, scheduled_at")
+            .eq("mentee_id", user.id)
+            .eq("status", "confirmed")
+            .gte("scheduled_at", new Date().toISOString())
+            .order("scheduled_at", { ascending: true })
+            .limit(1)
+            .maybeSingle();
+          if (bk) {
+            const dt  = new Date(bk.scheduled_at);
+            const end = new Date(dt.getTime() + 30 * 60_000);
+            upcomingSession = {
+              id:           bk.id,
+              title:        `Sesión de Mentoría con ${bk.mentor_name}`,
+              mentorName:   bk.mentor_name,
+              mentorRole:   "Mentora",
+              mentorAvatar: "👩‍💼",
+              dateLabel:    dt.toLocaleDateString("es-MX", { weekday: "short", month: "short", day: "numeric" }),
+              startTime:    dt.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" }),
+              endTime:      end.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" }),
+              locationType: "Online · 1:1",
+              mentorId:     bk.mentor_id,
+            };
+          }
+        }
+
         setMenteeData({
           role: "mentee",
           userName: resolvedName,
           sessionMilestoneCount: 0,
           motivationalQuote: "Tu camino empieza aquí.",
-          upcomingSession: null,
+          upcomingSession,
           activeGoals: [],
           growthStats: {
             sessionsThisMonth: 0,

@@ -27,18 +27,18 @@ const DAY_NAMES = [
 ];
 
 function buildSlots() {
-  const today = new Date();
-  const dayAfter = new Date(today);
-  dayAfter.setDate(today.getDate() + 2);
+  const today    = new Date();
+  const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+  const dayAfter = new Date(today); dayAfter.setDate(today.getDate() + 2);
+
+  const toISO = (d: Date, h: number, m: number) => {
+    const dt = new Date(d); dt.setHours(h, m, 0, 0); return dt.toISOString();
+  };
 
   return [
-    { id: "1", label: "Hoy · 3:30 PM", icon: "time" as const },
-    { id: "2", label: "Mañana · 10:00 AM", icon: "calendar" as const },
-    {
-      id: "3",
-      label: `${DAY_NAMES[dayAfter.getDay()]} · 5:00 PM`,
-      icon: "calendar" as const,
-    },
+    { id: "1", label: "Hoy · 3:30 PM",                             icon: "time"     as const, scheduledAt: toISO(today,    15, 30) },
+    { id: "2", label: "Mañana · 10:00 AM",                         icon: "calendar" as const, scheduledAt: toISO(tomorrow, 10,  0) },
+    { id: "3", label: `${DAY_NAMES[dayAfter.getDay()]} · 5:00 PM`, icon: "calendar" as const, scheduledAt: toISO(dayAfter, 17,  0) },
   ];
 }
 
@@ -68,7 +68,7 @@ export default function SchedulePage({ params }: Props) {
     const selected = slots.find((s) => s.id === selectedId);
     if (!selected) return;
     router.push(
-      `/booking/${mentorId}/confirmed?slot=${encodeURIComponent(selected.label)}`
+      `/booking/${mentorId}/confirmed?slot=${encodeURIComponent(selected.label)}&scheduledAt=${encodeURIComponent(selected.scheduledAt)}`
     );
   };
 

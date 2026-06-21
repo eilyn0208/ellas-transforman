@@ -1,11 +1,12 @@
 "use client";
 
-import { use, useEffect, useState, Suspense } from "react";
+import { use, useEffect, useRef, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { IoCalendarOutline } from "react-icons/io5";
 import PrimaryButton from "@/components/PrimaryButton";
 import AppLayout from "@/components/AppLayout";
 import AppHeader from "@/components/AppHeader";
+import { supabase } from "@/lib/supabase/client";
 
 interface Props {
   params: Promise<{ mentorId: string }>;
@@ -16,12 +17,14 @@ interface SelectedMentor {
   name: string;
 }
 
-function ConfirmedContent({ mentorId: _mentorId }: { mentorId: string }) {
+function ConfirmedContent({ mentorId }: { mentorId: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const slot = searchParams.get("slot") ?? "Hoy · 3:30 PM";
+  const slot        = searchParams.get("slot")        ?? "Hoy · 3:30 PM";
+  const scheduledAt = searchParams.get("scheduledAt") ?? new Date().toISOString();
   const [mentor, setMentor] = useState<SelectedMentor | null>(null);
   const [ready, setReady] = useState(false);
+  const savedRef = useRef(false);
 
   useEffect(() => {
     try {
@@ -30,6 +33,29 @@ function ConfirmedContent({ mentorId: _mentorId }: { mentorId: string }) {
     } catch { /* ignore */ }
     setReady(true);
   }, []);
+
+  // Persist booking exactly once. Double guard:
+  // - savedRef: prevents React Strict Mode double-invoke in dev
+  // - DB UNIQUE(mentee_id, scheduled_at) + ignoreDuplicates: prevents repeat on page refresh
+  useEffect(() => {
+    if (!mentor || savedRef.current) return;
+    savedRef.current = true;
+    async function save() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      await supabase.from("bookings").upsert(
+        {
+          mentee_id:    user.id,
+          mentor_id:    mentorId,
+          mentor_name:  mentor!.name,
+          slot_label:   slot,
+          scheduled_at: scheduledAt,
+        },
+        { onConflict: "mentee_id,scheduled_at", ignoreDuplicates: true }
+      );
+    }
+    save();
+  }, [mentor]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!ready) return null;
   if (!mentor) { router.replace("/discover"); return null; }
