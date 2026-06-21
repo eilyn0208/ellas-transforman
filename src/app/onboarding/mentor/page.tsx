@@ -66,18 +66,16 @@ export default function MentorOnboardingPage() {
         if (profileError) throw new Error("No se pudo guardar tu perfil. Intenta de nuevo.");
 
         // Paso 1: evaluación de mentora
-        const { data: maData, error: maError } = await supabase
+        const { error: maError } = await supabase
           .from("mentor_assessments")
           .upsert(
             { user_id: user.id, answers: nuevasRespuestas },
             { onConflict: "user_id" }
-          )
-          .select();
+          );
         if (maError) throw new Error("No se pudo guardar tu evaluación. Intenta de nuevo.");
-        if (!maData || maData.length === 0) throw new Error("No se pudo confirmar tu evaluación. Verifica permisos e intenta de nuevo.");
 
         // Paso 2: perfil de mentora
-        const { data: mpData, error: mpError } = await supabase
+        const { error: mpError } = await supabase
           .from("mentor_profiles")
           .upsert(
             {
@@ -89,10 +87,8 @@ export default function MentorOnboardingPage() {
               availability: (nuevasRespuestas.mentoring_frequency as string) ?? null,
             },
             { onConflict: "user_id" }
-          )
-          .select();
+          );
         if (mpError) throw new Error("No se pudo guardar tu perfil de mentora. Intenta de nuevo.");
-        if (!mpData || mpData.length === 0) throw new Error("No se pudo confirmar el perfil de mentora. Verifica permisos e intenta de nuevo.");
 
         // Paso 3: disponibilidad
         const slotLabels = (nuevasRespuestas.availability_slots as string[]) ?? [];
