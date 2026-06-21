@@ -800,16 +800,42 @@ export default function HomePage() {
 
       if (resolvedRole === "mentee") {
         let upcomingSession: import("@/types/home").UpcomingBookingSession | null = null;
+        let answers: Record<string, unknown> = {};
+        let bookingCount = 0;
+        let activeGoals: ActiveGoalCard[] = [];
+        let roadmapSummary: import("@/types/home").RoadmapSummary = {
+          pathTitle: "",
+          currentStage: 0,
+          totalStages: 0,
+          completedItems: [],
+          inProgressItem: "",
+        };
+
         if (user) {
-          const { data: bk } = await supabase
-            .from("bookings")
-            .select("id, mentor_id, mentor_name, slot_label, scheduled_at")
-            .eq("mentee_id", user.id)
-            .eq("status", "confirmed")
-            .gte("scheduled_at", new Date().toISOString())
-            .order("scheduled_at", { ascending: true })
-            .limit(1)
-            .maybeSingle();
+          const [bkRes, assessmentRes, countRes] = await Promise.all([
+            supabase
+              .from("bookings")
+              .select("id, mentor_id, mentor_name, slot_label, scheduled_at")
+              .eq("mentee_id", user.id)
+              .eq("status", "confirmed")
+              .gte("scheduled_at", new Date().toISOString())
+              .order("scheduled_at", { ascending: true })
+              .limit(1)
+              .maybeSingle(),
+            supabase
+              .from("assessments")
+              .select("answers")
+              .eq("user_id", user.id)
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle(),
+            supabase
+              .from("bookings")
+              .select("*", { count: "exact", head: true })
+              .eq("mentee_id", user.id),
+          ]);
+
+          const bk = bkRes.data;
           if (bk) {
             const dt  = new Date(bk.scheduled_at);
             const end = new Date(dt.getTime() + 30 * 60_000);
@@ -826,7 +852,71 @@ export default function HomePage() {
               mentorId:     bk.mentor_id,
             };
           }
+
+          if (assessmentRes.data?.answers) {
+            answers = assessmentRes.data.answers as Record<string, unknown>;
+          }
+          bookingCount = countRes.count ?? 0;
         }
+
+        if (!answers.goals) {
+          const local = localStorage.getItem("ellas_mentee_answers");
+          if (local) {
+            try { answers = JSON.parse(local); } catch { /* ignore */ }
+          }
+        }
+
+        try {
+          const roadmapRes = await fetch("/api/roadmap", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              goals: (answers.goals as string[]) ?? [],
+              interests: (answers.interests as string[]) ?? [],
+              stage: (answers.stage as string) ?? "",
+              bookingCount,
+            }),
+          });
+          if (roadmapRes.ok) {
+            const rd = await roadmapRes.json();
+            const progressMap: Record<string, number> = {
+              completed: 100,
+              "in-progress": 60,
+              upcoming: 20,
+            };
+            const iconMap: Record<string, { icon: string; iconBg: string }> = {
+              completed:     { icon: "✅", iconBg: "bg-green-50" },
+              "in-progress": { icon: "🚀", iconBg: "bg-brand-soft" },
+              upcoming:      { icon: "🎯", iconBg: "bg-blue-50" },
+            };
+            activeGoals = (rd.milestones as Array<{ id: string; title: string; description: string; status: string }>)
+              .filter((m) => m.status !== "locked" && m.status !== "suggested")
+              .slice(0, 3)
+              .map((m) => ({
+                id: m.id,
+                title: m.title,
+                description: m.description,
+                progressPercent: progressMap[m.status] ?? 10,
+                icon: (iconMap[m.status] ?? { icon: "📌", iconBg: "bg-gray-50" }).icon,
+                iconBg: (iconMap[m.status] ?? { icon: "📌", iconBg: "bg-gray-50" }).iconBg,
+              }));
+
+            const completed = (rd.milestones as Array<{ title: string; status: string }>)
+              .filter((m) => m.status === "completed");
+            const inProg = (rd.milestones as Array<{ title: string; status: string }>)
+              .find((m) => m.status === "in-progress");
+            const interests = (answers.interests as string[]) ?? [];
+            roadmapSummary = {
+              pathTitle: interests.length > 0
+                ? `Ruta: ${interests.slice(0, 2).join(" & ")}`
+                : "Tu ruta profesional",
+              currentStage: completed.length + (inProg ? 1 : 0),
+              totalStages: rd.milestones.length,
+              completedItems: completed.map((m: { title: string }) => m.title),
+              inProgressItem: inProg?.title ?? "",
+            };
+          }
+        } catch { /* roadmap fetch failed, keep empty */ }
 
         setMenteeData({
           role: "mentee",
@@ -834,20 +924,14 @@ export default function HomePage() {
           sessionMilestoneCount: 0,
           motivationalQuote: "Tu camino empieza aquí.",
           upcomingSession,
-          activeGoals: [],
+          activeGoals,
           growthStats: {
             sessionsThisMonth: 0,
             skillsGained: [],
             chartDataByWeek: [0, 0, 0, 0, 0, 0],
             chartLabel: "Últimas 6 semanas",
           },
-          roadmapSummary: {
-            pathTitle: "",
-            currentStage: 0,
-            totalStages: 0,
-            completedItems: [],
-            inProgressItem: "",
-          },
+          roadmapSummary,
           aiAction: {
             suggestion: "Explora mentoras disponibles y agenda tu primera sesión.",
             ctaLabel: "Explorar",

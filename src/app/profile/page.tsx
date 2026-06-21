@@ -2,13 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import type { ProfileView } from "@/types/profile";
+import type { ProfileView, ConnectedMentor } from "@/types/profile";
 import { mockMenteeProfile, mockMentorProfile } from "@/constants/profile";
 import { IoAddOutline, IoCheckmarkCircle, IoSparklesOutline } from "react-icons/io5";
 import AppHeader from "@/components/AppHeader";
 import AppLayout from "@/components/AppLayout";
 import Badge from "@/components/ui/Badge";
-import ProgressBar from "@/components/ui/ProgressBar";
 import { supabase } from "@/lib/supabase/client";
 
 interface AssessmentResultRow {
@@ -67,9 +66,12 @@ function useProfileData(): {
           bio: (mp?.mentoring_style as string | null) ?? "",
           tags,
           specialties: expertise,
+          education: [],
+          logros: [],
+          activePrograms: [],
         });
       } else {
-        const [profileRes, assessmentRes] = user
+        const [profileRes, assessmentRes, bookingsRes] = user
           ? await Promise.all([
               supabase
                 .from("profiles")
@@ -83,11 +85,35 @@ function useProfileData(): {
                 .order("created_at", { ascending: false })
                 .limit(1)
                 .maybeSingle(),
+              supabase
+                .from("bookings")
+                .select("mentor_id, mentor_name")
+                .eq("mentee_id", user.id)
+                .eq("status", "confirmed"),
             ])
-          : [{ data: null, error: null }, { data: null, error: null }];
+          : [{ data: null, error: null }, { data: null, error: null }, { data: null, error: null }];
 
         const arRow = assessmentRes.data as AssessmentResultRow | null;
         const helpfulPoints = arRow?.recommendations?.helpfulPoints ?? [];
+
+        let connectedMentors: ConnectedMentor[] = [];
+        const bookingRows = (bookingsRes.data ?? []) as Array<{ mentor_id: string; mentor_name: string }>;
+        if (bookingRows.length > 0) {
+          const uniqueIds = [...new Set(bookingRows.map((b) => b.mentor_id))];
+          const { data: mProfiles } = await supabase
+            .from("mentor_profiles")
+            .select("user_id, name, role, expertise")
+            .in("user_id", uniqueIds);
+          const avatars = ["👩‍💼", "👩‍🔬", "👩‍🏫"];
+          connectedMentors = (mProfiles ?? []).map((mp, i) => ({
+            id: mp.user_id as string,
+            name: (mp.name as string) ?? bookingRows.find((b) => b.mentor_id === mp.user_id)?.mentor_name ?? "Mentora",
+            role: (mp.role as string | null) ?? "Mentora",
+            avatar: avatars[i % 3],
+            isVerified: true,
+            specialty: (Array.isArray(mp.expertise) ? (mp.expertise as string[])[0] : "") ?? "",
+          }));
+        }
 
         setAssessmentResult(arRow);
         setProfile({
@@ -98,6 +124,10 @@ function useProfileData(): {
             mockMenteeProfile.name,
           bio: arRow?.profile_description ?? "",
           tags: helpfulPoints.slice(0, 3),
+          education: [],
+          connectedMentors,
+          logros: [],
+          activePrograms: [],
         });
       }
 
@@ -281,28 +311,35 @@ export default function ProfilePage() {
               </span>
               <span className="text-xs text-gray-400">Opcional</span>
             </div>
-            {profile.education.map((edu) => (
-              <div key={edu.id} className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-xl bg-brand-soft flex items-center justify-center text-lg flex-shrink-0">
-                  {edu.emoji}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-800 leading-tight">
-                    {edu.institution}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    {edu.degree} · {edu.year}
-                  </p>
-                </div>
-                <button
-                  className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:border-brand hover:text-brand transition-colors flex-shrink-0"
-                  aria-label="Editar educación"
-                >
-                  <IoAddOutline className="text-base" />
-                </button>
+            {profile.education.length === 0 ? (
+              <div className="py-3 text-center">
+                <p className="text-gray-400 text-sm">Todavía no tienes educación registrada</p>
+                <p className="text-gray-300 text-xs mt-1">Agrega tu institución o certificados</p>
               </div>
-            ))}
-            <button className="text-brand text-xs font-medium hover:underline">
+            ) : (
+              profile.education.map((edu) => (
+                <div key={edu.id} className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-brand-soft flex items-center justify-center text-lg flex-shrink-0">
+                    {edu.emoji}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-800 leading-tight">
+                      {edu.institution}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {edu.degree} · {edu.year}
+                    </p>
+                  </div>
+                  <button
+                    className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:border-brand hover:text-brand transition-colors flex-shrink-0"
+                    aria-label="Editar educación"
+                  >
+                    <IoAddOutline className="text-base" />
+                  </button>
+                </div>
+              ))
+            )}
+            <button className="text-brand text-xs font-medium hover:underline mt-2">
               + Agregar institución o certificado
             </button>
           </div>
@@ -324,28 +361,40 @@ export default function ProfilePage() {
                   Ver todas
                 </button>
               </div>
-              <div className="flex gap-4">
-                {profile.connectedMentors.map((mentor) => (
-                  <div
-                    key={mentor.id}
-                    className="flex-1 flex flex-col items-center text-center gap-1.5"
+              {profile.connectedMentors.length === 0 ? (
+                <div className="py-3 text-center">
+                  <p className="text-gray-400 text-sm">Todavía no tienes mentoras activas</p>
+                  <button
+                    onClick={() => router.push("/discover")}
+                    className="text-brand text-xs font-semibold mt-1 hover:underline"
                   >
-                    <div className="w-14 h-14 rounded-full bg-brand-soft flex items-center justify-center text-2xl">
-                      {mentor.avatar}
+                    Conectar con una mentora →
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-4">
+                  {profile.connectedMentors.map((mentor) => (
+                    <div
+                      key={mentor.id}
+                      className="flex-1 flex flex-col items-center text-center gap-1.5"
+                    >
+                      <div className="w-14 h-14 rounded-full bg-brand-soft flex items-center justify-center text-2xl">
+                        {mentor.avatar}
+                      </div>
+                      <p className="text-xs font-semibold text-gray-800 leading-tight">
+                        {mentor.name}
+                      </p>
+                      <p className="text-[10px] text-gray-500">{mentor.role}</p>
+                      {mentor.isVerified && (
+                        <span className="text-[10px] bg-teal-50 text-teal-600 font-semibold px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                          <IoCheckmarkCircle className="text-xs" />
+                          Verificada
+                        </span>
+                      )}
                     </div>
-                    <p className="text-xs font-semibold text-gray-800 leading-tight">
-                      {mentor.name}
-                    </p>
-                    <p className="text-[10px] text-gray-500">{mentor.role}</p>
-                    {mentor.isVerified && (
-                      <span className="text-[10px] bg-teal-50 text-teal-600 font-semibold px-2 py-0.5 rounded-full flex items-center gap-0.5">
-                        <IoCheckmarkCircle className="text-xs" />
-                        Verificada
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           ) : (
             !isMentee &&
@@ -405,45 +454,6 @@ export default function ProfilePage() {
             </div>
           )}
 
-          {/* Active Goals — solo para mentees */}
-          {isMentee && (
-            <div className="bg-white rounded-2xl p-4 shadow-sm">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-1 h-4 bg-brand rounded-full" />
-                  <span className="text-sm font-semibold text-gray-700">
-                    Metas activas
-                  </span>
-                </div>
-                <span className="text-xs text-gray-400">
-                  {profile.activeGoal.inProgressCount} en progreso
-                </span>
-              </div>
-              <p className="text-sm font-bold text-gray-800 mb-2.5">
-                {profile.activeGoal.title}
-              </p>
-              <div className="flex items-center gap-2 mb-1.5">
-                <ProgressBar
-                  percent={profile.activeGoal.progressPercent}
-                  size="md"
-                  className="flex-1"
-                />
-                <span className="text-xs font-bold text-brand flex-shrink-0">
-                  {profile.activeGoal.progressPercent}%
-                </span>
-              </div>
-              <p className="text-xs text-gray-500 mb-3">
-                {profile.activeGoal.milestoneLabel}
-              </p>
-              <button
-                onClick={() => router.push("/roadmap")}
-                className="text-xs font-semibold text-brand border border-brand px-4 py-2 rounded-full hover:bg-brand-light transition-colors"
-              >
-                Ver Roadmap
-              </button>
-            </div>
-          )}
-
           {/* Logros */}
           <div className="bg-white rounded-2xl p-4 shadow-sm">
             <div className="flex items-center justify-between mb-3">
@@ -455,24 +465,31 @@ export default function ProfilePage() {
               </div>
               <span className="text-xs text-gray-400">{profile.updatedLabel}</span>
             </div>
-            <div className="space-y-2">
-              {profile.logros.map((logro) => (
-                <div
-                  key={logro.id}
-                  className="flex items-center gap-3 bg-brand-soft/30 rounded-xl p-3"
-                >
-                  <div className="w-10 h-10 rounded-xl bg-brand flex items-center justify-center text-xl flex-shrink-0">
-                    {logro.emoji}
+            {profile.logros.length === 0 ? (
+              <div className="py-3 text-center">
+                <p className="text-gray-400 text-sm">Todavía no tienes logros activos</p>
+                <p className="text-gray-300 text-xs mt-1">Completa sesiones para ganar insignias</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {profile.logros.map((logro) => (
+                  <div
+                    key={logro.id}
+                    className="flex items-center gap-3 bg-brand-soft/30 rounded-xl p-3"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-brand flex items-center justify-center text-xl flex-shrink-0">
+                      {logro.emoji}
+                    </div>
+                    <p className="flex-1 text-sm font-semibold text-gray-800">
+                      {logro.title}
+                    </p>
+                    <button className="text-xs font-semibold text-brand hover:underline flex-shrink-0">
+                      Ver
+                    </button>
                   </div>
-                  <p className="flex-1 text-sm font-semibold text-gray-800">
-                    {logro.title}
-                  </p>
-                  <button className="text-xs font-semibold text-brand hover:underline flex-shrink-0">
-                    Ver
-                  </button>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Programas actuales */}
@@ -488,66 +505,57 @@ export default function ProfilePage() {
                 Ver todos
               </button>
             </div>
-            <div className="space-y-3">
-              {profile.activePrograms.map((prog) => (
-                <div key={prog.id} className="flex gap-3 items-center">
-                  <div className="w-14 h-14 rounded-xl bg-brand-soft flex items-center justify-center text-2xl flex-shrink-0">
-                    {prog.emoji}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-gray-800 leading-tight">
-                      {prog.title}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      {prog.coachInfo}
-                    </p>
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="text-xs text-gray-400">
-                        {prog.currentLesson} de {prog.totalLessons}
-                      </span>
-                      <button className="text-xs font-semibold text-white bg-brand px-4 py-1.5 rounded-full hover:bg-brand-dark transition-colors">
-                        Continuar
-                      </button>
+            {profile.activePrograms.length === 0 ? (
+              <div className="py-3 text-center">
+                <p className="text-gray-400 text-sm">Todavía no tienes programas activos</p>
+                <p className="text-gray-300 text-xs mt-1">Explora los programas disponibles</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {profile.activePrograms.map((prog) => (
+                  <div key={prog.id} className="flex gap-3 items-center">
+                    <div className="w-14 h-14 rounded-xl bg-brand-soft flex items-center justify-center text-2xl flex-shrink-0">
+                      {prog.emoji}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-gray-800 leading-tight">
+                        {prog.title}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {prog.coachInfo}
+                      </p>
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-xs text-gray-400">
+                          {prog.currentLesson} de {prog.totalLessons}
+                        </span>
+                        <button className="text-xs font-semibold text-white bg-brand px-4 py-1.5 rounded-full hover:bg-brand-dark transition-colors">
+                          Continuar
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Comunidad */}
           <div className="bg-white rounded-2xl p-4 shadow-sm">
-            <div className="flex items-center justify-between mb-1">
-              <div className="flex items-center gap-2">
-                <div className="w-1 h-4 bg-brand rounded-full" />
-                <span className="text-sm font-semibold text-gray-700">
-                  Comunidad
-                </span>
-              </div>
-              <span className="text-xs text-gray-400">
-                {profile.communityStats.totalLabel} /{" "}
-                {profile.communityStats.onlineLabel}
+            <div className="flex items-center gap-2 mb-1">
+              <div className="w-1 h-4 bg-brand rounded-full" />
+              <span className="text-sm font-semibold text-gray-700">
+                Comunidad
               </span>
             </div>
             <p className="text-xs text-gray-500 mb-3 pl-3">
-              Recursos, eventos y soporte
+              Todavía no estás conectada a una comunidad activa
             </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => router.push("/explore")}
-                className="flex-1 text-xs font-semibold text-brand border border-brand py-2.5 rounded-full hover:bg-brand-light transition-colors"
-              >
-                Explorar recursos
-              </button>
-              <button
-                onClick={() =>
-                  router.push(isMentee ? "/discover" : "/mentor/mentees")
-                }
-                className="flex-1 text-xs font-semibold text-white bg-brand py-2.5 rounded-full hover:bg-brand-dark transition-colors"
-              >
-                {isMentee ? "Conectar con mentora" : "Ver comunidad"}
-              </button>
-            </div>
+            <button
+              onClick={() => router.push("/explore")}
+              className="w-full text-xs font-semibold text-brand border border-brand py-2.5 rounded-full hover:bg-brand-light transition-colors"
+            >
+              Explorar recursos
+            </button>
           </div>
           {/* Cerrar sesión */}
           <button

@@ -258,7 +258,7 @@ export default function RoadmapPage() {
 
   return (
     <AppLayout>
-      <AppHeader showBack title="Mi Ruta" />
+      <AppHeader title="Mi Ruta" />
 
       <main className="flex-1 px-5 py-5 space-y-5 overflow-y-auto">
         {loading && (
@@ -303,10 +303,10 @@ export default function RoadmapPage() {
               </div>
 
               <div className="flex gap-3 mt-4">
-                <button className="flex-1 py-2 bg-brand text-white text-xs font-semibold rounded-full hover:opacity-90 transition-opacity">
-                  Celebrar
-                </button>
-                <button className="flex-1 py-2 border border-brand text-brand text-xs font-semibold rounded-full hover:bg-brand-light transition-colors flex items-center justify-center gap-1">
+                <button
+                  onClick={() => window.open("https://www.linkedin.com/", "_blank")}
+                  className="flex-1 py-2 border border-brand text-brand text-xs font-semibold rounded-full hover:bg-brand-light transition-colors flex items-center justify-center gap-1"
+                >
                   <IoShareSocial className="text-sm" />
                   Compartir
                 </button>
