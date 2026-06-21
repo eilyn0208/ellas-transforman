@@ -1,9 +1,8 @@
 "use client";
 
-import { use, Suspense } from "react";
+import { use, useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { IoCalendarOutline } from "react-icons/io5";
-import { mentors } from "@/constants/mentors";
 import PrimaryButton from "@/components/PrimaryButton";
 import AppLayout from "@/components/AppLayout";
 import AppHeader from "@/components/AppHeader";
@@ -12,16 +11,28 @@ interface Props {
   params: Promise<{ mentorId: string }>;
 }
 
-function ConfirmedContent({ mentorId }: { mentorId: string }) {
+interface SelectedMentor {
+  user_id: string;
+  name: string;
+}
+
+function ConfirmedContent({ mentorId: _mentorId }: { mentorId: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const slot = searchParams.get("slot") ?? "Hoy · 3:30 PM";
-  const mentor = mentors.find((m) => m.id === mentorId);
+  const [mentor, setMentor] = useState<SelectedMentor | null>(null);
+  const [ready, setReady] = useState(false);
 
-  if (!mentor) {
-    router.replace("/discover");
-    return null;
-  }
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("ellas_selected_mentor");
+      if (raw) setMentor(JSON.parse(raw));
+    } catch { /* ignore */ }
+    setReady(true);
+  }, []);
+
+  if (!ready) return null;
+  if (!mentor) { router.replace("/discover"); return null; }
 
   const firstName = mentor.name.split(" ")[0];
 
@@ -57,8 +68,8 @@ function ConfirmedContent({ mentorId }: { mentorId: string }) {
 
           {/* Mentor info card */}
           <div className="w-full bg-white rounded-2xl px-5 py-4 flex items-center gap-4 shadow-sm">
-            <div className="w-12 h-12 rounded-full bg-brand-soft flex items-center justify-center text-2xl flex-shrink-0">
-              {mentor.avatar}
+            <div className="w-12 h-12 rounded-full bg-brand-soft flex items-center justify-center text-2xl font-bold text-brand flex-shrink-0">
+              {mentor.name.charAt(0).toUpperCase()}
             </div>
             <div>
               <p className="font-bold text-sm">

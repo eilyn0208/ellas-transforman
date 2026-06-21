@@ -1,15 +1,36 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { type Mentor, mentors } from "@/constants/mentors";
 import AppLayout from "@/components/AppLayout";
+import { supabase } from "@/lib/supabase/client";
+
+interface MentorProfile {
+  user_id: string;
+  name: string;
+  role: string | null;
+  expertise: string[] | null;
+  mentoring_style: string | null;
+  availability: string | null;
+}
+
+function scoreMatch(interests: string[], expertise: string[] | null): number {
+  if (!expertise || interests.length === 0) return 0;
+  const expertiseLower = expertise.map((e) => e.toLowerCase());
+  return interests.filter((i) =>
+    expertiseLower.some(
+      (e) => e.includes(i.toLowerCase()) || i.toLowerCase().includes(e)
+    )
+  ).length;
+}
 
 const SWIPE_THRESHOLD = 120;
 const ROTATION_FACTOR = 0.08;
 
 export default function DiscoverPage() {
   const router = useRouter();
+  const [mentors, setMentors] = useState<MentorProfile[]>([]);
+  const [loading, setLoading] = useState(true);
   const [index, setIndex] = useState(0);
 
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -17,6 +38,38 @@ export default function DiscoverPage() {
   const [exitDirection, setExitDirection] = useState<"left" | "right" | null>(null);
 
   const dragStart = useRef({ x: 0, y: 0 });
+
+  useEffect(() => {
+    async function fetchMentors() {
+      const { data, error } = await supabase
+        .from("mentor_profiles")
+        .select("user_id, name, role, expertise, mentoring_style, availability");
+
+      if (error || !data) {
+        setLoading(false);
+        return;
+      }
+
+      let interests: string[] = [];
+      try {
+        const raw = localStorage.getItem("ellas_mentee_answers");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          interests = Array.isArray(parsed.interests) ? parsed.interests : [];
+        }
+      } catch { /* sin intereses */ }
+
+      const sorted = [...data].sort(
+        (a, b) =>
+          scoreMatch(interests, b.expertise) - scoreMatch(interests, a.expertise)
+      );
+
+      setMentors(sorted);
+      setLoading(false);
+    }
+
+    fetchMentors();
+  }, []);
 
   const current = mentors[index];
   const next = mentors[index + 1];
@@ -26,7 +79,7 @@ export default function DiscoverPage() {
     setExitDirection(null);
   };
 
-  const advance = (direction: "left" | "right", mentor: Mentor) => {
+  const advance = (direction: "left" | "right", mentor: MentorProfile) => {
     if (exitDirection) return;
 
     setDragging(false);
@@ -35,7 +88,8 @@ export default function DiscoverPage() {
 
     setTimeout(() => {
       if (direction === "right") {
-        router.push(`/booking/${mentor.id}`);
+        localStorage.setItem("ellas_selected_mentor", JSON.stringify(mentor));
+        router.push(`/booking/${mentor.user_id}`);
         return;
       }
       setIndex((i) => i + 1);
@@ -79,6 +133,17 @@ export default function DiscoverPage() {
   const rotation = position.x * ROTATION_FACTOR;
   const likeOpacity = Math.min(Math.max(position.x / SWIPE_THRESHOLD, 0), 1);
   const nopeOpacity = Math.min(Math.max(-position.x / SWIPE_THRESHOLD, 0), 1);
+
+  if (loading) {
+    return (
+      <AppLayout showNav={false} bg="bg-white">
+        <main className="flex-1 px-6 py-6 flex flex-col justify-center items-center">
+          <div className="w-10 h-10 rounded-full border-4 border-brand-soft border-t-brand animate-spin mb-4" />
+          <p className="text-gray-500 text-sm">Buscando mentoras para ti...</p>
+        </main>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout showNav={false} bg="bg-white">
@@ -175,23 +240,26 @@ export default function DiscoverPage() {
   );
 }
 
-function MentorCardContent({ mentor }: { mentor: Mentor }) {
+function MentorCardContent({ mentor }: { mentor: MentorProfile }) {
+  const initial = mentor.name?.charAt(0).toUpperCase() ?? "M";
   return (
     <div className="flex h-full flex-col p-6">
-      <div className="h-56 rounded-2xl bg-brand-soft mb-6 flex items-center justify-center text-6xl">
-        {mentor.avatar}
+      <div className="h-56 rounded-2xl bg-brand-soft mb-6 flex items-center justify-center text-6xl font-bold text-brand">
+        {initial}
       </div>
 
       <h2 className="text-2xl font-bold">{mentor.name}</h2>
 
-      <p className="text-brand font-semibold">{mentor.role}</p>
+      <p className="text-brand font-semibold">{mentor.role ?? "Mentora"}</p>
 
-      <p className="text-gray-500 mb-4">{mentor.company}</p>
+      <p className="text-gray-500 mb-1">{mentor.mentoring_style ?? ""}</p>
 
-      <p className="text-gray-700 mb-4">{mentor.bio}</p>
+      <p className="text-gray-700 mb-4 text-sm">
+        {mentor.availability ? `Disponibilidad: ${mentor.availability}` : ""}
+      </p>
 
       <div className="flex flex-wrap gap-2 mt-auto">
-        {mentor.tags.map((tag) => (
+        {(mentor.expertise ?? []).map((tag) => (
           <span
             key={tag}
             className="rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-800"

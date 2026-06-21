@@ -1,15 +1,19 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { IoTimeOutline, IoCalendarOutline } from "react-icons/io5";
-import { mentors } from "@/constants/mentors";
 import PrimaryButton from "@/components/PrimaryButton";
 import AppLayout from "@/components/AppLayout";
 import AppHeader from "@/components/AppHeader";
 
 interface Props {
   params: Promise<{ mentorId: string }>;
+}
+
+interface SelectedMentor {
+  user_id: string;
+  name: string;
 }
 
 const DAY_NAMES = [
@@ -43,13 +47,20 @@ const slots = buildSlots();
 export default function SchedulePage({ params }: Props) {
   const { mentorId } = use(params);
   const router = useRouter();
-  const mentor = mentors.find((m) => m.id === mentorId);
   const [selectedId, setSelectedId] = useState("1");
+  const [mentor, setMentor] = useState<SelectedMentor | null>(null);
+  const [ready, setReady] = useState(false);
 
-  if (!mentor) {
-    router.replace("/discover");
-    return null;
-  }
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("ellas_selected_mentor");
+      if (raw) setMentor(JSON.parse(raw));
+    } catch { /* ignore */ }
+    setReady(true);
+  }, []);
+
+  if (!ready) return null;
+  if (!mentor) { router.replace("/discover"); return null; }
 
   const firstName = mentor.name.split(" ")[0];
 

@@ -1,8 +1,7 @@
 "use client";
 
-import { use } from "react";
+import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { mentors } from "@/constants/mentors";
 import PrimaryButton from "@/components/PrimaryButton";
 import AppLayout from "@/components/AppLayout";
 import AppHeader from "@/components/AppHeader";
@@ -11,15 +10,27 @@ interface Props {
   params: Promise<{ mentorId: string }>;
 }
 
+interface SelectedMentor {
+  user_id: string;
+  name: string;
+}
+
 export default function ConnectConfirmationPage({ params }: Props) {
   const { mentorId } = use(params);
   const router = useRouter();
-  const mentor = mentors.find((m) => m.id === mentorId);
+  const [mentor, setMentor] = useState<SelectedMentor | null>(null);
+  const [ready, setReady] = useState(false);
 
-  if (!mentor) {
-    router.replace("/discover");
-    return null;
-  }
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("ellas_selected_mentor");
+      if (raw) setMentor(JSON.parse(raw));
+    } catch { /* ignore */ }
+    setReady(true);
+  }, []);
+
+  if (!ready) return null;
+  if (!mentor) { router.replace("/discover"); return null; }
 
   const firstName = mentor.name.split(" ")[0];
 
@@ -46,8 +57,8 @@ export default function ConnectConfirmationPage({ params }: Props) {
         </div>
 
         {/* Mentor avatar */}
-        <div className="w-24 h-24 rounded-full bg-brand-soft flex items-center justify-center text-5xl mb-5 shadow-sm">
-          {mentor.avatar}
+        <div className="w-24 h-24 rounded-full bg-brand-soft flex items-center justify-center text-5xl font-bold text-brand mb-5 shadow-sm">
+          {mentor.name.charAt(0).toUpperCase()}
         </div>
 
         {/* Texts */}
