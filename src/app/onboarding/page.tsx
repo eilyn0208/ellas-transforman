@@ -54,6 +54,24 @@ export default function OnboardingPage() {
           if (error) {
             console.error("profiles upsert failed:", error);
           }
+
+          const { error: assessmentError } = await supabase
+            .from("assessments")
+            .insert({ user_id: user.id, answers: respuestas });
+          if (assessmentError) console.error("assessments insert failed:", assessmentError);
+
+          const { error: resultsError } = await supabase
+            .from("assessment_results")
+            .insert({
+              user_id: user.id,
+              profile_name: data.title,
+              profile_description: data.description,
+              recommendations: {
+                helpfulPoints: data.helpfulPoints,
+                mentorTraits: data.mentorTraits,
+              },
+            });
+          if (resultsError) console.error("assessment_results insert failed:", resultsError);
         }
       } catch (e) {
         console.error("profiles upsert failed:", e);

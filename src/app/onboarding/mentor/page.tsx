@@ -57,6 +57,23 @@ export default function MentorOnboardingPage() {
           if (error) {
             console.error("profiles upsert failed:", error);
           }
+
+          const { error: maError } = await supabase
+            .from("mentor_assessments")
+            .insert({ user_id: user.id, answers: nuevasRespuestas });
+          if (maError) console.error("mentor_assessments insert failed:", maError);
+
+          const { error: mpError } = await supabase
+            .from("mentor_profiles")
+            .insert({
+              user_id: user.id,
+              name: full_name,
+              role: (nuevasRespuestas.current_area as string) ?? null,
+              expertise: nuevasRespuestas.mentoring_topics ?? null,
+              mentoring_style: (nuevasRespuestas.mentoring_style as string) ?? null,
+              availability: (nuevasRespuestas.mentoring_frequency as string) ?? null,
+            });
+          if (mpError) console.error("mentor_profiles insert failed:", mpError);
         }
       } catch (e) {
         console.error("profiles upsert failed:", e);
