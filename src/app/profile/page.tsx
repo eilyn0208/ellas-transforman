@@ -4,73 +4,111 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { ProfileView } from "@/types/profile";
 import { mockMenteeProfile, mockMentorProfile } from "@/constants/profile";
-import { IoAddOutline, IoCheckmarkCircle } from "react-icons/io5";
+import { IoAddOutline, IoCheckmarkCircle, IoSparklesOutline } from "react-icons/io5";
 import AppHeader from "@/components/AppHeader";
 import AppLayout from "@/components/AppLayout";
 import Badge from "@/components/ui/Badge";
 import ProgressBar from "@/components/ui/ProgressBar";
 import { supabase } from "@/lib/supabase/client";
 
-function useProfileData(): { profile: ProfileView; loading: boolean } {
+interface AssessmentResultRow {
+  profile_name: string | null;
+  profile_description: string | null;
+  recommendations: { helpfulPoints: string[]; mentorTraits: string[] } | null;
+}
+
+function useProfileData(): {
+  profile: ProfileView;
+  loading: boolean;
+  assessmentResult: AssessmentResultRow | null;
+  mentorRole: string | null;
+  availability: string | null;
+} {
   const [profile, setProfile] = useState<ProfileView>(mockMenteeProfile);
   const [loading, setLoading] = useState(true);
+  const [assessmentResult, setAssessmentResult] = useState<AssessmentResultRow | null>(null);
+  const [mentorRole, setMentorRole] = useState<string | null>(null);
+  const [availability, setAvailability] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
 
+      console.log("[profile] user.id:", user?.id ?? "null (no autenticado)");
+      console.log("[profile] user_metadata.role:", user?.user_metadata?.role);
+      console.log("[profile] localStorage ellas_role:", localStorage.getItem("ellas_role"));
+
       const role = user?.user_metadata?.role ?? localStorage.getItem("ellas_role");
       const isMentor = role === "mentor" || role === "mentora";
-      const name =
+
+      console.log("[profile] isMentor branch:", isMentor);
+      const authName =
         user?.user_metadata?.full_name ??
         user?.user_metadata?.name ??
         user?.email ??
         "";
 
       if (isMentor) {
-        let mentorAnswers: Record<string, unknown> = {};
-        try {
-          mentorAnswers = JSON.parse(localStorage.getItem("ellas_mentor_answers") ?? "{}");
-        } catch { /* use empty */ }
+        const { data: mp, error: mpError } = user
+          ? await supabase
+              .from("mentor_profiles")
+              .select("name, role, expertise, mentoring_style, availability")
+              .eq("user_id", user.id)
+              .maybeSingle()
+          : { data: null, error: null };
 
-        const specialties =
-          (mentorAnswers.mentoring_topics as string[] | undefined) ??
-          mockMentorProfile.specialties;
-        const tags = specialties.slice(0, 3);
-        const bio =
-          (mentorAnswers.mentor_reason as string | undefined) ||
-          mockMentorProfile.bio;
+        console.log("[profile] mentor_profiles query error:", mpError);
+        console.log("[profile] mentor_profiles mp completo:", JSON.stringify(mp));
+
+        const expertise: string[] = Array.isArray(mp?.expertise)
+          ? (mp!.expertise as unknown as string[])
+          : [];
+        const roleTag = mp?.role ? [mp.role as string] : [];
+        const tags = [...roleTag, ...expertise].slice(0, 3);
+
+        setMentorRole((mp?.role as string | null) ?? null);
+        setAvailability((mp?.availability as string | null) ?? null);
+
+        console.log("[profile] setMentorRole →", (mp?.role as string | null) ?? null);
+        console.log("[profile] setAvailability →", (mp?.availability as string | null) ?? null);
 
         setProfile({
           ...mockMentorProfile,
-          name: name || mockMentorProfile.name,
-          bio,
+          name: (mp?.name as string | null) || authName || mockMentorProfile.name,
+          bio: (mp?.mentoring_style as string | null) ?? "",
           tags,
-          specialties,
+          specialties: expertise,
         });
       } else {
-        let menteeAnswers: Record<string, unknown> = {};
-        try {
-          menteeAnswers = JSON.parse(localStorage.getItem("ellas_mentee_answers") ?? "{}");
-        } catch { /* use empty */ }
+        const [profileRes, assessmentRes] = user
+          ? await Promise.all([
+              supabase
+                .from("profiles")
+                .select("full_name")
+                .eq("id", user.id)
+                .maybeSingle(),
+              supabase
+                .from("assessment_results")
+                .select("profile_name, profile_description, recommendations")
+                .eq("user_id", user.id)
+                .order("created_at", { ascending: false })
+                .limit(1)
+                .maybeSingle(),
+            ])
+          : [{ data: null, error: null }, { data: null, error: null }];
 
-        const interests =
-          (menteeAnswers.interests as string[] | undefined) ??
-          mockMenteeProfile.tags;
-        const tags = interests.slice(0, 3);
-        const goalsList = (menteeAnswers.goals as string[] | undefined);
-        const activeGoalTitle = goalsList?.[0] ?? mockMenteeProfile.activeGoal.title;
-        const additionalContext = menteeAnswers.additionalContext as string | undefined;
+        const arRow = assessmentRes.data as AssessmentResultRow | null;
+        const helpfulPoints = arRow?.recommendations?.helpfulPoints ?? [];
 
+        setAssessmentResult(arRow);
         setProfile({
           ...mockMenteeProfile,
-          name: name || mockMenteeProfile.name,
-          bio: additionalContext || mockMenteeProfile.bio,
-          tags,
-          activeGoal: {
-            ...mockMenteeProfile.activeGoal,
-            title: activeGoalTitle,
-          },
+          name:
+            (profileRes.data?.full_name as string | null) ||
+            authName ||
+            mockMenteeProfile.name,
+          bio: arRow?.profile_description ?? "",
+          tags: helpfulPoints.slice(0, 3),
         });
       }
 
@@ -79,12 +117,69 @@ function useProfileData(): { profile: ProfileView; loading: boolean } {
     load();
   }, []);
 
-  return { profile, loading };
+  return { profile, loading, assessmentResult, mentorRole, availability };
+}
+
+function MenteeAssessmentCard({ result }: { result: AssessmentResultRow }) {
+  const helpfulPoints = result.recommendations?.helpfulPoints ?? [];
+  const mentorTraits = result.recommendations?.mentorTraits ?? [];
+
+  return (
+    <div className="bg-white rounded-2xl p-4 shadow-sm space-y-4">
+      <div className="flex items-center gap-2">
+        <div className="w-1 h-4 bg-brand rounded-full" />
+        <span className="text-sm font-semibold text-gray-700">Tu perfil</span>
+      </div>
+
+      {result.profile_name && (
+        <div>
+          <p className="text-sm font-bold text-brand">{result.profile_name}</p>
+          {result.profile_description && (
+            <p className="text-xs text-gray-600 mt-1.5 leading-relaxed">
+              {result.profile_description}
+            </p>
+          )}
+        </div>
+      )}
+
+      {helpfulPoints.length > 0 && (
+        <div>
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+            Cómo podemos ayudarte
+          </p>
+          <ul className="space-y-2">
+            {helpfulPoints.map((pt, i) => (
+              <li key={i} className="flex items-start gap-2 text-xs text-gray-700">
+                <IoCheckmarkCircle className="text-brand text-base flex-shrink-0 mt-0.5" />
+                {pt}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {mentorTraits.length > 0 && (
+        <div>
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+            Tu mentora ideal
+          </p>
+          <ul className="space-y-2">
+            {mentorTraits.map((tr, i) => (
+              <li key={i} className="flex items-start gap-2 text-xs text-gray-700">
+                <IoSparklesOutline className="text-brand text-base flex-shrink-0 mt-0.5" />
+                {tr}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { profile, loading } = useProfileData();
+  const { profile, loading, assessmentResult, mentorRole, availability } = useProfileData();
   const [bio, setBio] = useState("");
 
   async function handleSignOut() {
@@ -108,6 +203,7 @@ export default function ProfilePage() {
   }
 
   const isMentee = profile.role === "mentee";
+  console.log("[profile] render → profile.role:", profile.role, "| isMentee:", isMentee, "| mentorRole:", mentorRole, "| availability:", availability);
 
   return (
     <AppLayout>
@@ -134,6 +230,11 @@ export default function ProfilePage() {
         </div>
 
         <div className="px-5 py-4 space-y-4">
+          {/* Tu perfil — card IA, solo mentees */}
+          {isMentee && assessmentResult && (
+            <MenteeAssessmentCard result={assessmentResult} />
+          )}
+
           {/* Short bio */}
           <div className="bg-white rounded-2xl p-4 shadow-sm">
             <div className="flex items-center justify-between mb-2">
@@ -155,6 +256,34 @@ export default function ProfilePage() {
               ))}
             </div>
           </div>
+
+          {/* Mentor: Información de mentoría */}
+          {!isMentee && (mentorRole || availability) && (
+            <div className="bg-white rounded-2xl p-4 shadow-sm">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-1 h-4 bg-brand rounded-full" />
+                <span className="text-sm font-semibold text-gray-700">
+                  Información de mentoría
+                </span>
+              </div>
+              {mentorRole && (
+                <div className="mb-3">
+                  <p className="text-xs text-gray-400 uppercase tracking-wide mb-0.5">
+                    Rol profesional
+                  </p>
+                  <p className="text-sm font-semibold text-gray-800">{mentorRole}</p>
+                </div>
+              )}
+              {availability && (
+                <div>
+                  <p className="text-xs text-gray-400 uppercase tracking-wide mb-0.5">
+                    Disponibilidad
+                  </p>
+                  <p className="text-sm text-gray-700">{availability}</p>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Education */}
           <div className="bg-white rounded-2xl p-4 shadow-sm">

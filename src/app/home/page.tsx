@@ -9,7 +9,6 @@ import {
   IoCalendarOutline,
   IoTimeOutline,
   IoLocationOutline,
-  IoFlash,
   IoChevronForward,
   IoCheckmarkCircle,
   IoEllipseOutline,
@@ -20,7 +19,6 @@ import {
 } from "react-icons/io5";
 import AppHeader from "@/components/AppHeader";
 import AppLayout from "@/components/AppLayout";
-import { mockMenteeDashboard, mockMentorDashboard } from "@/constants/home";
 import type {
   MenteeDashboardData,
   MentorDashboardData,
@@ -98,9 +96,11 @@ function MenteeWelcomeBanner({ data }: { data: MenteeDashboardData }) {
         <h1 className="text-white text-xl font-bold mb-1">
           {data.userName} 👋
         </h1>
-        <p className="text-yellow-300 text-xs font-bold tracking-wide uppercase mb-3">
-          ¡Felicidades por tus {data.sessionMilestoneCount} sesiones!
-        </p>
+        {data.sessionMilestoneCount > 0 && (
+          <p className="text-yellow-300 text-xs font-bold tracking-wide uppercase mb-3">
+            ¡Felicidades por tus {data.sessionMilestoneCount} sesiones!
+          </p>
+        )}
         <p className="text-white/75 text-xs leading-relaxed italic">
           "{data.motivationalQuote}"
         </p>
@@ -199,35 +199,60 @@ function MenteeActiveGoals({ data }: { data: MenteeDashboardData }) {
         title="Tus metas"
         action={{ label: "Ver todas", route: "/roadmap" }}
       />
-      <div className="bg-white rounded-2xl shadow-sm divide-y divide-gray-50">
-        {data.activeGoals.map((goal: ActiveGoalCard) => (
-          <div key={goal.id} className="px-4 py-3 flex items-center gap-3">
-            <div
-              className={`w-9 h-9 rounded-full ${goal.iconBg} flex items-center justify-center text-base flex-shrink-0`}
-            >
-              {goal.icon}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between mb-1">
-                <p className="text-sm font-semibold text-gray-900 leading-tight">
-                  {goal.title}
-                </p>
-                <span className="text-xs font-bold text-brand ml-2 flex-shrink-0">
-                  {goal.progressPercent}%
-                </span>
+      {data.activeGoals.length === 0 ? (
+        <div className="bg-white rounded-2xl px-5 py-6 shadow-sm text-center">
+          <p className="text-gray-400 text-sm">Tus metas activas aparecerán aquí</p>
+          <button
+            onClick={() => router.push("/roadmap")}
+            className="text-brand text-xs font-semibold mt-2 hover:underline"
+          >
+            Crear mi roadmap →
+          </button>
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl shadow-sm divide-y divide-gray-50">
+          {data.activeGoals.map((goal: ActiveGoalCard) => (
+            <div key={goal.id} className="px-4 py-3 flex items-center gap-3">
+              <div
+                className={`w-9 h-9 rounded-full ${goal.iconBg} flex items-center justify-center text-base flex-shrink-0`}
+              >
+                {goal.icon}
               </div>
-              <p className="text-xs text-gray-400 mb-1.5">{goal.description}</p>
-              <ProgressBar percent={goal.progressPercent} />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-sm font-semibold text-gray-900 leading-tight">
+                    {goal.title}
+                  </p>
+                  <span className="text-xs font-bold text-brand ml-2 flex-shrink-0">
+                    {goal.progressPercent}%
+                  </span>
+                </div>
+                <p className="text-xs text-gray-400 mb-1.5">{goal.description}</p>
+                <ProgressBar percent={goal.progressPercent} />
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
 
 function MenteeGrowthProgress({ data }: { data: MenteeDashboardData }) {
   const { growthStats } = data;
+
+  if (growthStats.sessionsThisMonth === 0) {
+    return (
+      <section>
+        <SectionHeader title="Progreso de crecimiento" />
+        <div className="bg-white rounded-2xl px-5 py-6 shadow-sm text-center">
+          <p className="text-gray-400 text-sm">Aún no tienes sesiones registradas</p>
+          <p className="text-gray-300 text-xs mt-1">Tu progreso aparecerá aquí</p>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section>
       <SectionHeader title="Progreso de crecimiento" />
@@ -263,6 +288,25 @@ function MenteeGrowthProgress({ data }: { data: MenteeDashboardData }) {
 function MenteeRoadmapSummary({ data }: { data: MenteeDashboardData }) {
   const router = useRouter();
   const { roadmapSummary } = data;
+
+  if (!roadmapSummary.pathTitle) {
+    return (
+      <section>
+        <div className="bg-white rounded-2xl p-4 shadow-sm text-center">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+            Ruta de Carrera
+          </p>
+          <p className="text-xs text-gray-400 mb-3">Aún no tienes un roadmap activo</p>
+          <button
+            onClick={() => router.push("/roadmap")}
+            className="px-5 py-2 bg-brand text-white text-xs font-semibold rounded-full hover:opacity-90 transition-opacity"
+          >
+            Explorar rutas →
+          </button>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section>
@@ -332,9 +376,12 @@ function MenteeAIAction({ data }: { data: MenteeDashboardData }) {
   );
 }
 
-function MenteeDashboard({ userName }: { userName?: string }) {
+function MenteeDashboard({
+  data,
+}: {
+  data: MenteeDashboardData;
+}) {
   const router = useRouter();
-  const data = userName ? { ...mockMenteeDashboard, userName } : mockMenteeDashboard;
 
   const rightSlot = (
     <>
@@ -381,9 +428,11 @@ function MentorWelcomeBanner({ data }: { data: MentorDashboardData }) {
         <h1 className="text-white text-xl font-bold mb-1">
           {data.userName} 🌟
         </h1>
-        <p className="text-emerald-200 text-xs font-bold tracking-wide uppercase mb-3">
-          {data.sessionMilestoneCount} sesiones de mentoría dadas
-        </p>
+        {data.sessionMilestoneCount > 0 && (
+          <p className="text-emerald-200 text-xs font-bold tracking-wide uppercase mb-3">
+            {data.sessionMilestoneCount} sesiones de mentoría dadas
+          </p>
+        )}
         <p className="text-white/70 text-xs leading-relaxed italic">
           "Tu guía transforma el camino de otra mujer."
         </p>
@@ -467,44 +516,63 @@ function MentorActiveMentees({ data }: { data: MentorDashboardData }) {
         title="Tus mentees activas"
         action={{ label: "Ver todas", route: "/sessions" }}
       />
-      <div className="bg-white rounded-2xl shadow-sm divide-y divide-gray-50">
-        {data.activeMentees.map((mentee: MenteeProgressCard) => (
-          <div key={mentee.id} className="px-4 py-3">
-            <div className="flex items-center gap-3 mb-1.5">
-              <div className="w-9 h-9 rounded-full bg-green-50 flex items-center justify-center text-base flex-shrink-0">
-                {mentee.avatar}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-gray-900">
-                    {mentee.name}
-                  </p>
-                  <div className="flex items-center gap-1.5">
-                    {mentee.needsAttention && (
-                      <span className="w-2 h-2 bg-amber-400 rounded-full flex-shrink-0" />
-                    )}
-                    <span className="text-xs font-bold text-green-700">
-                      {mentee.progressPercent}%
-                    </span>
-                  </div>
+      {data.activeMentees.length === 0 ? (
+        <div className="bg-white rounded-2xl px-5 py-6 shadow-sm text-center">
+          <p className="text-gray-400 text-sm">Aún no tienes mentees activas</p>
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl shadow-sm divide-y divide-gray-50">
+          {data.activeMentees.map((mentee: MenteeProgressCard) => (
+            <div key={mentee.id} className="px-4 py-3">
+              <div className="flex items-center gap-3 mb-1.5">
+                <div className="w-9 h-9 rounded-full bg-green-50 flex items-center justify-center text-base flex-shrink-0">
+                  {mentee.avatar}
                 </div>
-                <p className="text-xs text-gray-400">{mentee.goal}</p>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold text-gray-900">
+                      {mentee.name}
+                    </p>
+                    <div className="flex items-center gap-1.5">
+                      {mentee.needsAttention && (
+                        <span className="w-2 h-2 bg-amber-400 rounded-full flex-shrink-0" />
+                      )}
+                      <span className="text-xs font-bold text-green-700">
+                        {mentee.progressPercent}%
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-400">{mentee.goal}</p>
+                </div>
               </div>
+              <ProgressBar
+                percent={mentee.progressPercent}
+                color={mentee.needsAttention ? "bg-amber-400" : "bg-green-500"}
+              />
+              <p className="text-[10px] text-gray-400 mt-1">{mentee.lastActivityLabel}</p>
             </div>
-            <ProgressBar
-              percent={mentee.progressPercent}
-              color={mentee.needsAttention ? "bg-amber-400" : "bg-green-500"}
-            />
-            <p className="text-[10px] text-gray-400 mt-1">{mentee.lastActivityLabel}</p>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
 
 function MentorImpactSection({ data }: { data: MentorDashboardData }) {
   const { impactStats } = data;
+
+  if (impactStats.sessionsGiven === 0) {
+    return (
+      <section>
+        <SectionHeader title="Tu impacto" />
+        <div className="bg-white rounded-2xl px-5 py-6 shadow-sm text-center">
+          <p className="text-gray-400 text-sm">
+            Tu impacto aparecerá aquí cuando des tu primera sesión
+          </p>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section>
@@ -546,6 +614,20 @@ function MentorImpactSection({ data }: { data: MentorDashboardData }) {
 function MentorProgramSection({ data }: { data: MentorDashboardData }) {
   const router = useRouter();
   const { programProgress } = data;
+
+  if (programProgress.totalStages === 0) {
+    return (
+      <section>
+        <div className="bg-white rounded-2xl p-4 shadow-sm text-center">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+            Programa actual
+          </p>
+          <p className="text-xs text-gray-400">Sin programa activo por el momento</p>
+        </div>
+      </section>
+    );
+  }
+
   const stagePercent = Math.round((programProgress.currentStage / programProgress.totalStages) * 100);
 
   return (
@@ -614,9 +696,12 @@ function MentorAIAction({ data }: { data: MentorDashboardData }) {
   );
 }
 
-function MentorDashboard({ userName }: { userName?: string }) {
+function MentorDashboard({
+  data,
+}: {
+  data: MentorDashboardData;
+}) {
   const router = useRouter();
-  const data = userName ? { ...mockMentorDashboard, userName } : mockMentorDashboard;
 
   const rightSlot = (
     <>
@@ -680,28 +765,107 @@ function SectionHeader({
 
 export default function HomePage() {
   const [role, setRole] = useState<"mentee" | "mentor" | null>(null);
-  const [userName, setUserName] = useState<string | undefined>(undefined);
+  const [menteeData, setMenteeData] = useState<MenteeDashboardData | null>(null);
+  const [mentorData, setMentorData] = useState<MentorDashboardData | null>(null);
 
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
-      const metaRole = user?.user_metadata?.role as "mentee" | "mentor" | undefined;
-      const stored = localStorage.getItem("ellas_role") as "mentee" | "mentor" | null;
-      const resolvedRole = metaRole ?? stored ?? "mentee";
-      if (metaRole && metaRole !== stored) localStorage.setItem("ellas_role", metaRole);
-      setRole(resolvedRole);
 
-      const fullName =
+      // 1. profiles → role + nombre canónico
+      let dbProfile: { full_name: string | null; role: string | null } | null = null;
+      if (user) {
+        const { data: p } = await supabase
+          .from("profiles")
+          .select("full_name, role")
+          .eq("id", user.id)
+          .maybeSingle();
+        dbProfile = p;
+      }
+
+      const resolvedRole = (
+        (dbProfile?.role as "mentee" | "mentor" | undefined) ??
+        (user?.user_metadata?.role as "mentee" | "mentor" | undefined) ??
+        (localStorage.getItem("ellas_role") as "mentee" | "mentor" | null) ??
+        "mentee"
+      );
+      localStorage.setItem("ellas_role", resolvedRole);
+
+      const resolvedName: string =
+        dbProfile?.full_name ??
         user?.user_metadata?.full_name ??
         user?.user_metadata?.name ??
         localStorage.getItem("ellas_name") ??
-        undefined;
-      setUserName(fullName ?? undefined);
+        "—";
+
+      if (resolvedRole === "mentee") {
+        setMenteeData({
+          role: "mentee",
+          userName: resolvedName,
+          sessionMilestoneCount: 0,
+          motivationalQuote: "Tu camino empieza aquí.",
+          upcomingSession: null,
+          activeGoals: [],
+          growthStats: {
+            sessionsThisMonth: 0,
+            skillsGained: [],
+            chartDataByWeek: [0, 0, 0, 0, 0, 0],
+            chartLabel: "Últimas 6 semanas",
+          },
+          roadmapSummary: {
+            pathTitle: "",
+            currentStage: 0,
+            totalStages: 0,
+            completedItems: [],
+            inProgressItem: "",
+          },
+          aiAction: {
+            suggestion: "Explora mentoras disponibles y agenda tu primera sesión.",
+            ctaLabel: "Explorar",
+            ctaRoute: "/discover",
+          },
+        });
+
+      } else {
+        setMentorData({
+          role: "mentor",
+          userName: resolvedName,
+          sessionMilestoneCount: 0,
+          upcomingSession: null,
+          activeMentees: [],
+          impactStats: {
+            sessionsGiven: 0,
+            totalHours: 0,
+            menteesActive: 0,
+            chartDataByWeek: [0, 0, 0, 0, 0, 0],
+            chartLabel: "Últimas 6 semanas",
+          },
+          programProgress: {
+            title: "",
+            currentStage: 0,
+            totalStages: 0,
+            nextMilestone: "—",
+            menteesEnrolled: 0,
+          },
+          aiAction: {
+            suggestion: "Completa tu perfil y conecta con tu primera mentee.",
+            ctaLabel: "Explorar",
+            ctaRoute: "/discover",
+          },
+        });
+      }
+
+      setRole(resolvedRole);
     }
     load();
   }, []);
 
-  if (role === null) {
+  const isLoading =
+    role === null ||
+    (role === "mentee" && menteeData === null) ||
+    (role === "mentor" && mentorData === null);
+
+  if (isLoading) {
     return (
       <AppLayout>
         <AppHeader />
@@ -713,6 +877,6 @@ export default function HomePage() {
   }
 
   return role === "mentor"
-    ? <MentorDashboard userName={userName} />
-    : <MenteeDashboard userName={userName} />;
+    ? <MentorDashboard data={mentorData!} />
+    : <MenteeDashboard data={menteeData!} />;
 }
