@@ -54,8 +54,8 @@ export default function BottomNav() {
     load();
   }, []);
 
-  const activeColor = isMentor ? "text-emerald-700" : "text-brand";
-  const hoverColor = isMentor ? "hover:text-emerald-700" : "hover:text-brand";
+  const activeColor = "text-brand";
+  const hoverColor = "hover:text-brand";
 
   return (
     <nav className="flex-shrink-0 w-full bg-white border-t border-gray-100 px-4 pt-3 pb-safe flex items-center justify-around">

@@ -417,7 +417,7 @@ function MenteeDashboard({
 
 function MentorWelcomeBanner({ data }: { data: MentorDashboardData }) {
   return (
-    <div className="rounded-2xl p-5 relative overflow-hidden" style={{ background: "linear-gradient(135deg, #2d6a4f 0%, #40916c 100%)" }}>
+    <div className="rounded-2xl p-5 relative overflow-hidden" style={{ background: "linear-gradient(135deg, #824be5 0%, #a06af0 100%)" }}>
       <div className="absolute right-0 top-0 text-7xl opacity-20 leading-none select-none pr-3 pt-1">
         🌱
       </div>
@@ -429,7 +429,7 @@ function MentorWelcomeBanner({ data }: { data: MentorDashboardData }) {
           {data.userName} 🌟
         </h1>
         {data.sessionMilestoneCount > 0 && (
-          <p className="text-emerald-200 text-xs font-bold tracking-wide uppercase mb-3">
+          <p className="text-purple-200 text-xs font-bold tracking-wide uppercase mb-3">
             {data.sessionMilestoneCount} sesiones de mentoría dadas
           </p>
         )}
@@ -451,7 +451,7 @@ function MentorUpcomingSession({ data }: { data: MentorDashboardData }) {
       <section>
         <SectionHeader title="Próxima sesión" />
         <div className="bg-white rounded-2xl px-5 py-4 shadow-sm flex items-center gap-4">
-          <div className="w-11 h-11 rounded-full bg-green-50 flex items-center justify-center text-2xl flex-shrink-0">
+          <div className="w-11 h-11 rounded-full bg-brand-soft flex items-center justify-center text-2xl flex-shrink-0">
             📅
           </div>
           <p className="text-gray-400 text-sm">No tienes sesiones programadas</p>
@@ -465,14 +465,14 @@ function MentorUpcomingSession({ data }: { data: MentorDashboardData }) {
       <SectionHeader title="Próxima sesión" />
       <div className="bg-white rounded-2xl p-4 shadow-sm">
         <div className="flex items-start gap-3 mb-3">
-          <div className="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center text-2xl flex-shrink-0">
+          <div className="w-12 h-12 rounded-full bg-brand-soft flex items-center justify-center text-2xl flex-shrink-0">
             {session.menteeAvatar}
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-bold text-sm text-gray-900 leading-snug">
               {session.title}
             </p>
-            <p className="text-green-700 text-xs mt-0.5">
+            <p className="text-brand text-xs mt-0.5">
               Con {session.menteeName} · Meta: {session.menteeGoal}
             </p>
           </div>
@@ -480,11 +480,11 @@ function MentorUpcomingSession({ data }: { data: MentorDashboardData }) {
 
         <div className="flex items-center gap-4 text-xs text-gray-500 mb-3">
           <span className="flex items-center gap-1">
-            <IoCalendarOutline className="text-sm text-green-600" />
+            <IoCalendarOutline className="text-sm text-brand" />
             {session.dateLabel}
           </span>
           <span className="flex items-center gap-1">
-            <IoTimeOutline className="text-sm text-green-600" />
+            <IoTimeOutline className="text-sm text-brand" />
             {session.startTime} – {session.endTime}
           </span>
         </div>
@@ -496,8 +496,7 @@ function MentorUpcomingSession({ data }: { data: MentorDashboardData }) {
           </span>
           <button
             onClick={() => router.push("/sessions")}
-            className="px-4 py-1.5 text-xs font-semibold rounded-full text-white hover:opacity-90 transition-opacity"
-            style={{ background: "#40916c" }}
+            className="px-4 py-1.5 text-xs font-semibold rounded-full text-white bg-brand hover:opacity-90 transition-opacity"
           >
             Ver sesión
           </button>
@@ -525,7 +524,7 @@ function MentorActiveMentees({ data }: { data: MentorDashboardData }) {
           {data.activeMentees.map((mentee: MenteeProgressCard) => (
             <div key={mentee.id} className="px-4 py-3">
               <div className="flex items-center gap-3 mb-1.5">
-                <div className="w-9 h-9 rounded-full bg-green-50 flex items-center justify-center text-base flex-shrink-0">
+                <div className="w-9 h-9 rounded-full bg-brand-soft flex items-center justify-center text-base flex-shrink-0">
                   {mentee.avatar}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -537,7 +536,7 @@ function MentorActiveMentees({ data }: { data: MentorDashboardData }) {
                       {mentee.needsAttention && (
                         <span className="w-2 h-2 bg-amber-400 rounded-full flex-shrink-0" />
                       )}
-                      <span className="text-xs font-bold text-green-700">
+                      <span className="text-xs font-bold text-brand">
                         {mentee.progressPercent}%
                       </span>
                     </div>
@@ -547,7 +546,7 @@ function MentorActiveMentees({ data }: { data: MentorDashboardData }) {
               </div>
               <ProgressBar
                 percent={mentee.progressPercent}
-                color={mentee.needsAttention ? "bg-amber-400" : "bg-green-500"}
+                color={mentee.needsAttention ? "bg-amber-400" : "bg-brand"}
               />
               <p className="text-[10px] text-gray-400 mt-1">{mentee.lastActivityLabel}</p>
             </div>
@@ -580,8 +579,8 @@ function MentorImpactSection({ data }: { data: MentorDashboardData }) {
       <div className="bg-white rounded-2xl p-4 shadow-sm">
         <div className="grid grid-cols-3 gap-3 mb-4">
           <div className="text-center">
-            <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-1">
-              <IoTrophyOutline className="text-green-600 text-lg" />
+            <div className="w-10 h-10 rounded-full bg-brand-soft flex items-center justify-center mx-auto mb-1">
+              <IoTrophyOutline className="text-brand text-lg" />
             </div>
             <p className="text-lg font-bold text-gray-900">{impactStats.sessionsGiven}</p>
             <p className="text-[10px] text-gray-400">Sesiones</p>
@@ -605,7 +604,7 @@ function MentorImpactSection({ data }: { data: MentorDashboardData }) {
         <div className="mb-1">
           <p className="text-xs text-gray-400">{impactStats.chartLabel}</p>
         </div>
-        <Sparkline data={impactStats.chartDataByWeek} color="#40916c" />
+        <Sparkline data={impactStats.chartDataByWeek} color="#824be5" />
       </div>
     </section>
   );
@@ -640,12 +639,12 @@ function MentorProgramSection({ data }: { data: MentorDashboardData }) {
             </p>
             <p className="text-sm font-bold text-gray-900">{programProgress.title}</p>
           </div>
-          <span className="text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0 text-green-700 bg-green-50">
+          <span className="text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0 text-brand bg-brand-soft">
             Etapa {programProgress.currentStage}/{programProgress.totalStages}
           </span>
         </div>
 
-        <ProgressBar percent={stagePercent} color="bg-green-500" />
+        <ProgressBar percent={stagePercent} color="bg-brand" />
 
         <div className="flex items-center justify-between mt-3">
           <p className="text-xs text-gray-500">
@@ -659,7 +658,7 @@ function MentorProgramSection({ data }: { data: MentorDashboardData }) {
 
         <button
           onClick={() => router.push("/sessions")}
-          className="w-full mt-3 py-2 border border-green-600 text-green-700 text-xs font-semibold rounded-full hover:bg-green-50 transition-colors"
+          className="w-full mt-3 py-2 border border-brand text-brand text-xs font-semibold rounded-full hover:bg-brand-soft transition-colors"
         >
           Ver programa completo
         </button>
@@ -673,10 +672,10 @@ function MentorAIAction({ data }: { data: MentorDashboardData }) {
   const { aiAction } = data;
 
   return (
-    <div className="bg-white rounded-2xl p-4 shadow-sm border border-green-100">
+    <div className="bg-white rounded-2xl p-4 shadow-sm border border-brand-soft">
       <div className="flex items-center gap-2 mb-2">
-        <IoSparklesOutline className="text-green-600 text-base" />
-        <p className="text-xs font-bold text-green-700 uppercase tracking-wide">
+        <IoSparklesOutline className="text-brand text-base" />
+        <p className="text-xs font-bold text-brand uppercase tracking-wide">
           Acción recomendada
         </p>
       </div>
@@ -686,8 +685,7 @@ function MentorAIAction({ data }: { data: MentorDashboardData }) {
         </p>
         <button
           onClick={() => router.push(aiAction.ctaRoute)}
-          className="px-5 py-2 text-white text-sm font-bold rounded-full hover:opacity-90 transition-opacity flex-shrink-0"
-          style={{ background: "#40916c" }}
+          className="px-5 py-2 text-white text-sm font-bold rounded-full bg-brand hover:opacity-90 transition-opacity flex-shrink-0"
         >
           {aiAction.ctaLabel}
         </button>
@@ -705,13 +703,13 @@ function MentorDashboard({
 
   const rightSlot = (
     <>
-      <button className="w-9 h-9 rounded-full bg-green-50 flex items-center justify-center text-green-700 hover:bg-green-100 transition-colors relative">
+      <button className="w-9 h-9 rounded-full bg-brand-soft flex items-center justify-center text-brand hover:bg-brand-soft/80 transition-colors relative">
         <IoNotificationsOutline className="text-lg" />
         <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-amber-400 rounded-full" />
       </button>
       <button
         onClick={() => router.push("/messages")}
-        className="w-9 h-9 rounded-full bg-green-50 flex items-center justify-center text-green-700 hover:bg-green-100 transition-colors"
+        className="w-9 h-9 rounded-full bg-brand-soft flex items-center justify-center text-brand hover:bg-brand-soft/80 transition-colors"
       >
         <IoChatbubbleOutline className="text-lg" />
       </button>
@@ -940,17 +938,120 @@ export default function HomePage() {
         });
 
       } else {
+        // ── Mentor branch: load real data from Supabase ──────────────────
+        let upcomingSession: import("@/types/home").UpcomingMenteeSession | null = null;
+        let activeMentees: import("@/types/home").MenteeProgressCard[] = [];
+        let sessionsGiven = 0;
+        let totalHours = 0;
+        let menteesActive = 0;
+        const chartDataByWeek: number[] = [0, 0, 0, 0, 0, 0];
+
+        if (user) {
+          const { data: mentorRows } = await supabase
+            .from("bookings")
+            .select("id, mentee_id, scheduled_at, duration_min, location_type, status")
+            .eq("mentor_id", user.id);
+
+          const allBookings = mentorRows ?? [];
+          const nowIso = new Date().toISOString();
+
+          const pastBookings = allBookings.filter((b) => b.scheduled_at <= nowIso);
+          sessionsGiven = pastBookings.length;
+          const totalMins = pastBookings.reduce((s, b) => s + (b.duration_min ?? 30), 0);
+          totalHours = Math.round((totalMins / 60) * 10) / 10;
+
+          const uniqueIds = [...new Set(allBookings.map((b) => b.mentee_id))];
+          menteesActive = uniqueIds.length;
+
+          const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+          for (const b of pastBookings) {
+            const diffWeeks = Math.floor((Date.now() - new Date(b.scheduled_at).getTime()) / WEEK_MS);
+            const idx = 5 - diffWeeks;
+            if (idx >= 0 && idx <= 5) chartDataByWeek[idx]++;
+          }
+
+          if (uniqueIds.length > 0) {
+            const { data: menteeProfiles } = await supabase
+              .from("profiles")
+              .select("id, full_name")
+              .in("id", uniqueIds);
+
+            const profileMap = new Map((menteeProfiles ?? []).map((p) => [p.id, p.full_name as string]));
+
+            const futureBookings = allBookings
+              .filter((b) => b.scheduled_at > nowIso)
+              .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at));
+            const nextBk = futureBookings[0] ?? null;
+
+            if (nextBk) {
+              const dt = new Date(nextBk.scheduled_at);
+              const end = new Date(dt.getTime() + (nextBk.duration_min ?? 30) * 60_000);
+              upcomingSession = {
+                id: nextBk.id,
+                title: "Sesión de mentoría",
+                menteeName: profileMap.get(nextBk.mentee_id) ?? "Mentee",
+                menteeAvatar: "👩‍💻",
+                menteeGoal: "Meta profesional",
+                dateLabel: dt.toLocaleDateString("es-MX", { weekday: "short", month: "short", day: "numeric" }),
+                startTime: dt.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false }),
+                endTime: end.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false }),
+                locationType: nextBk.location_type,
+                menteeId: nextBk.mentee_id,
+              };
+            }
+
+            activeMentees = uniqueIds.slice(0, 4).map((mid) => {
+              const mBookings = allBookings.filter((b) => b.mentee_id === mid);
+              const pastMBookings = mBookings.filter((b) => b.scheduled_at <= nowIso);
+              const lastPast = [...pastMBookings].sort((a, b) => b.scheduled_at.localeCompare(a.scheduled_at))[0];
+              const daysSince = lastPast
+                ? Math.floor((Date.now() - new Date(lastPast.scheduled_at).getTime()) / 86_400_000)
+                : 999;
+              const lastActivityLabel =
+                daysSince === 0 ? "Hoy" :
+                daysSince === 1 ? "Ayer" :
+                `Hace ${daysSince} días`;
+              return {
+                id: mid,
+                name: profileMap.get(mid) ?? "Mentee",
+                avatar: "👩‍💻",
+                goal: "Meta profesional",
+                progressPercent: Math.min(100, mBookings.length * 12),
+                lastActivityLabel,
+                needsAttention: daysSince > 14,
+              };
+            });
+          }
+        }
+
+        let suggestion: string;
+        let ctaLabel: string;
+        let ctaRoute: string;
+        if (sessionsGiven === 0 && menteesActive === 0) {
+          suggestion = "Completa tu perfil para empezar a recibir solicitudes de mentoría.";
+          ctaLabel = "Mi perfil";
+          ctaRoute = "/profile";
+        } else if (sessionsGiven === 0) {
+          suggestion = `Tienes ${menteesActive} mentee${menteesActive > 1 ? "s" : ""} esperando. Agenda tu primera sesión.`;
+          ctaLabel = "Ver mentees";
+          ctaRoute = "/mentor/mentees";
+        } else {
+          suggestion = `Llevas ${sessionsGiven} sesión${sessionsGiven > 1 ? "es" : ""} con ${menteesActive} mentee${menteesActive > 1 ? "s" : ""}. Sigue así.`;
+          ctaLabel = "Ver sesiones";
+          ctaRoute = "/sessions";
+        }
+
         setMentorData({
           role: "mentor",
           userName: resolvedName,
-          sessionMilestoneCount: 0,
-          upcomingSession: null,
-          activeMentees: [],
+          sessionMilestoneCount: sessionsGiven,
+          upcomingSession,
+          activeMentees,
           impactStats: {
-            sessionsGiven: 0,
-            totalHours: 0,
-            menteesActive: 0,
-            chartDataByWeek: [0, 0, 0, 0, 0, 0],
+            sessionsGiven,
+            totalHours,
+            menteesActive,
+            chartDataByWeek,
             chartLabel: "Últimas 6 semanas",
           },
           programProgress: {
@@ -958,13 +1059,9 @@ export default function HomePage() {
             currentStage: 0,
             totalStages: 0,
             nextMilestone: "—",
-            menteesEnrolled: 0,
+            menteesEnrolled: menteesActive,
           },
-          aiAction: {
-            suggestion: "Completa tu perfil y conecta con tu primera mentee.",
-            ctaLabel: "Explorar",
-            ctaRoute: "/discover",
-          },
+          aiAction: { suggestion, ctaLabel, ctaRoute },
         });
       }
 

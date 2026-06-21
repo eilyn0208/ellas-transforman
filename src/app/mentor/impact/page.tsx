@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase/client";
 import {
   IoTrophyOutline,
   IoTimeOutline,
@@ -12,17 +14,42 @@ import {
   IoTrendingUpOutline,
   IoNotificationsOutline,
   IoChatbubbleOutline,
-  IoCheckmarkCircle,
 } from "react-icons/io5";
 import AppHeader from "@/components/AppHeader";
 import AppLayout from "@/components/AppLayout";
-import { mockMentorImpact } from "@/constants/mentor-impact";
-import type { MentorBadge, MentorCertification, MenteeAchievement } from "@/types/mentor";
 
-const MENTOR_GREEN = "#2d6a4f";
-const MENTOR_MID = "#40916c";
+const BRAND = "#824be5";
 
-function Sparkline({ data, color = MENTOR_MID }: { data: number[]; color?: string }) {
+interface ImpactData {
+  totalSessions: number;
+  totalHours: number;
+  menteesActive: number;
+  growthTrend: number[];
+}
+
+function buildWeeklyTrend(bookings: { scheduled_at: string }[]): number[] {
+  const counts = [0, 0, 0, 0, 0, 0];
+  const now = Date.now();
+  const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+  for (const b of bookings) {
+    const diffWeeks = Math.floor((now - new Date(b.scheduled_at).getTime()) / WEEK_MS);
+    const idx = 5 - diffWeeks;
+    if (idx >= 0 && idx <= 5) counts[idx]++;
+  }
+  return counts;
+}
+
+function buildAIText(sessions: number, mentees: number): string {
+  if (sessions === 0)
+    return "Completa tu perfil y conecta con tu primera mentee para comenzar a generar impacto.";
+  if (sessions === 1)
+    return "Diste tu primera sesión. El primer paso siempre es el más importante.";
+  if (sessions < 10)
+    return `Llevas ${sessions} sesiones con ${mentees} ${mentees === 1 ? "mentee" : "mentees"}. La consistencia es la clave del impacto real.`;
+  return `Con ${sessions} sesiones y ${mentees} ${mentees === 1 ? "mentee" : "mentees"} acompañadas, estás construyendo una huella real en EllasTransforman.`;
+}
+
+function Sparkline({ data, color = BRAND }: { data: number[]; color?: string }) {
   const W = 300;
   const H = 56;
   const min = Math.min(...data);
@@ -39,7 +66,7 @@ function Sparkline({ data, color = MENTOR_MID }: { data: number[]; color?: strin
     ""
   );
   const area = `${line} L ${W} ${H} L 0 ${H} Z`;
-  const gradId = `sg-impact`;
+  const gradId = "sg-impact";
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-14" preserveAspectRatio="none">
@@ -63,7 +90,7 @@ function ProgressBar({ percent }: { percent: number }) {
     <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
       <div
         className="h-full rounded-full transition-all duration-700"
-        style={{ width: `${percent}%`, background: MENTOR_MID }}
+        style={{ width: `${percent}%`, background: BRAND }}
       />
     </div>
   );
@@ -72,25 +99,24 @@ function ProgressBar({ percent }: { percent: number }) {
 function SectionHeader({ title, icon }: { title: string; icon: React.ReactNode }) {
   return (
     <div className="flex items-center gap-2 mb-3">
-      <span style={{ color: MENTOR_MID }}>{icon}</span>
+      <span style={{ color: BRAND }}>{icon}</span>
       <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wide">{title}</h2>
     </div>
   );
 }
 
-function HeroStatsBand() {
-  const d = mockMentorImpact;
+function HeroStatsBand({ data }: { data: ImpactData }) {
   const stats = [
-    { icon: <IoTrophyOutline className="text-xl" />, value: d.totalSessions, label: "Sesiones" },
-    { icon: <IoTimeOutline className="text-xl" />, value: `${d.totalHours}h`, label: "Horas" },
-    { icon: <IoPeopleOutline className="text-xl" />, value: d.menteesActive, label: "Activas" },
-    { icon: <IoStarOutline className="text-xl" />, value: d.avgRating, label: "Calificación" },
+    { icon: <IoTrophyOutline className="text-xl" />, value: data.totalSessions, label: "Sesiones" },
+    { icon: <IoTimeOutline className="text-xl" />, value: `${data.totalHours}h`, label: "Horas" },
+    { icon: <IoPeopleOutline className="text-xl" />, value: data.menteesActive, label: "Activas" },
+    { icon: <IoStarOutline className="text-xl" />, value: "—", label: "Calificación" },
   ];
 
   return (
     <div
       className="rounded-2xl p-5 relative overflow-hidden"
-      style={{ background: `linear-gradient(135deg, ${MENTOR_GREEN} 0%, ${MENTOR_MID} 100%)` }}
+      style={{ background: `linear-gradient(135deg, ${BRAND} 0%, #a06af0 100%)` }}
     >
       <div className="absolute right-3 top-2 text-6xl opacity-15 select-none leading-none">🌍</div>
       <div className="relative">
@@ -117,55 +143,48 @@ function HeroStatsBand() {
 }
 
 function MentorLevelCard() {
-  const { level } = mockMentorImpact;
-
   return (
-    <div className="bg-white rounded-2xl p-4 shadow-sm">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <span className="text-2xl">{level.currentEmoji}</span>
-          <div>
-            <p className="text-xs text-gray-400 uppercase tracking-wide">Nivel actual</p>
-            <p className="text-sm font-bold text-gray-900">{level.current}</p>
-          </div>
-        </div>
-        <div className="text-right">
-          <p className="text-xs text-gray-400">Siguiente</p>
-          <p className="text-xs font-semibold" style={{ color: MENTOR_MID }}>{level.nextLevel}</p>
-        </div>
-      </div>
-      <ProgressBar percent={level.progressPercent} />
-      <div className="flex items-center justify-between mt-2">
-        <p className="text-[10px] text-gray-400">{level.points} pts</p>
-        <p className="text-[10px] text-gray-400">Faltan {level.pointsToNext} pts</p>
-      </div>
+    <div className="bg-white rounded-2xl p-5 shadow-sm text-center">
+      <p className="text-3xl mb-2">🌱</p>
+      <p className="text-sm font-semibold text-gray-700">Sistema de niveles</p>
+      <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+        Tu nivel aparecerá cuando completes tus primeras sesiones de mentoría
+      </p>
     </div>
   );
 }
 
-function GrowthTrendCard() {
-  const d = mockMentorImpact;
+function GrowthTrendCard({ data }: { data: ImpactData }) {
+  const allZero = data.growthTrend.every((v) => v === 0);
 
   return (
     <div className="bg-white rounded-2xl p-4 shadow-sm">
       <div className="flex items-center justify-between mb-2">
-        <p className="text-xs text-gray-400">{d.growthTrendLabel}</p>
+        <p className="text-xs text-gray-400">Sesiones acumuladas — últimas 6 semanas</p>
         <span
           className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full"
-          style={{ color: MENTOR_MID, background: "#d1fae5" }}
+          style={{ color: BRAND, background: "#ede9fe" }}
         >
           Sesiones
         </span>
       </div>
-      <Sparkline data={d.growthTrend} />
+
+      {allZero ? (
+        <div className="h-14 flex items-center justify-center">
+          <p className="text-xs text-gray-400">Sin sesiones registradas aún</p>
+        </div>
+      ) : (
+        <Sparkline data={data.growthTrend} />
+      )}
+
       <div className="flex items-center justify-between border-t border-gray-50 pt-3 mt-2">
         <div>
           <p className="text-xs text-gray-400">Total acumulado</p>
-          <p className="text-sm font-bold" style={{ color: MENTOR_MID }}>{d.totalSessions} sesiones</p>
+          <p className="text-sm font-bold" style={{ color: BRAND }}>{data.totalSessions} sesiones</p>
         </div>
         <div className="text-right">
-          <p className="text-xs text-gray-400">Graduadas</p>
-          <p className="text-sm font-bold text-emerald-600">{d.menteesGraduated} mentees</p>
+          <p className="text-xs text-gray-400">Mentees activas</p>
+          <p className="text-sm font-bold text-gray-700">{data.menteesActive} mentees</p>
         </div>
       </div>
     </div>
@@ -173,92 +192,66 @@ function GrowthTrendCard() {
 }
 
 function BadgesSection() {
-  const { badges } = mockMentorImpact;
-
   return (
     <section>
       <SectionHeader title="Reconocimientos" icon={<IoRibbonOutline className="text-base" />} />
-      <div className="grid grid-cols-3 gap-2">
-        {badges.map((badge: MentorBadge) => (
-          <div key={badge.id} className="bg-white rounded-xl p-3 shadow-sm text-center">
-            <span className="text-2xl">{badge.emoji}</span>
-            <p className="text-[11px] font-bold text-gray-800 mt-1 leading-tight">{badge.title}</p>
-            <p className="text-[10px] text-gray-400 mt-0.5">{badge.earnedAt}</p>
-          </div>
-        ))}
+      <div className="bg-white rounded-2xl px-5 py-8 shadow-sm text-center">
+        <p className="text-2xl mb-2">🏅</p>
+        <p className="text-sm font-semibold text-gray-700">Sin reconocimientos aún</p>
+        <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+          Tus logros como mentora aparecerán aquí conforme avances en el programa
+        </p>
       </div>
     </section>
   );
 }
 
 function MenteeAchievementsSection() {
-  const { menteeAchievements } = mockMentorImpact;
-
   return (
     <section>
       <SectionHeader title="Logros de mis mentees" icon={<IoTrophyOutline className="text-base" />} />
-      <div className="bg-white rounded-2xl shadow-sm divide-y divide-gray-50">
-        {menteeAchievements.map((a: MenteeAchievement) => (
-          <div key={a.id} className="px-4 py-3 flex items-start gap-3">
-            <div className="w-9 h-9 rounded-full bg-emerald-50 flex items-center justify-center text-base flex-shrink-0">
-              {a.menteeAvatar}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5 mb-0.5">
-                <IoCheckmarkCircle className="text-emerald-500 text-sm flex-shrink-0" />
-                <p className="text-xs font-semibold text-gray-900 leading-snug">{a.menteeName}</p>
-              </div>
-              <p className="text-xs text-gray-600 leading-snug">{a.achievement}</p>
-              <p className="text-[10px] text-gray-400 mt-0.5">{a.dateLabel}</p>
-            </div>
-          </div>
-        ))}
+      <div className="bg-white rounded-2xl px-5 py-8 shadow-sm text-center">
+        <p className="text-2xl mb-2">🎯</p>
+        <p className="text-sm font-semibold text-gray-700">Aún no hay logros registrados</p>
+        <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+          Los hitos de tus mentees aparecerán aquí cuando los alcancen
+        </p>
       </div>
     </section>
   );
 }
 
 function CertificationsSection() {
-  const { certifications } = mockMentorImpact;
-
   return (
     <section>
       <SectionHeader title="Certificaciones" icon={<IoSchoolOutline className="text-base" />} />
-      <div className="space-y-2">
-        {certifications.map((cert: MentorCertification) => (
-          <div key={cert.id} className="bg-white rounded-xl p-4 shadow-sm flex items-center gap-3">
-            <span className="text-2xl flex-shrink-0">{cert.badge}</span>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-gray-900 leading-tight">{cert.title}</p>
-              <p className="text-[10px] text-gray-400 mt-0.5">{cert.issuer} · {cert.issuedAt}</p>
-            </div>
-          </div>
-        ))}
+      <div className="bg-white rounded-2xl px-5 py-8 shadow-sm text-center">
+        <p className="text-2xl mb-2">🎓</p>
+        <p className="text-sm font-semibold text-gray-700">Sin certificaciones aún</p>
+        <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+          Completa los programas de EllasTransforman para obtener tus primeras certificaciones
+        </p>
       </div>
     </section>
   );
 }
 
-function AIRecommendationCard() {
-  const { aiRecommendation } = mockMentorImpact;
+function AIRecommendationCard({ data }: { data: ImpactData }) {
   const router = useRouter();
+  const text = buildAIText(data.totalSessions, data.menteesActive);
 
   return (
-    <div
-      className="rounded-2xl p-4 shadow-sm border"
-      style={{ borderColor: "#d1fae5", background: "#f0fdf4" }}
-    >
+    <div className="rounded-2xl p-4 shadow-sm border border-brand-soft bg-brand-soft/30">
       <div className="flex items-center gap-2 mb-2">
-        <IoSparklesOutline style={{ color: MENTOR_MID }} className="text-base" />
-        <p className="text-xs font-bold uppercase tracking-wide" style={{ color: MENTOR_MID }}>
-          Recomendación IA
+        <IoSparklesOutline className="text-brand text-base" />
+        <p className="text-xs font-bold uppercase tracking-wide text-brand">
+          Acción recomendada
         </p>
       </div>
-      <p className="text-sm text-gray-700 leading-relaxed mb-3">{aiRecommendation}</p>
+      <p className="text-sm text-gray-700 leading-relaxed mb-3">{text}</p>
       <button
         onClick={() => router.push("/mentor/mentees")}
-        className="text-xs font-semibold hover:underline flex items-center gap-1"
-        style={{ color: MENTOR_MID }}
+        className="text-xs font-semibold text-brand hover:underline flex items-center gap-1"
       >
         Ver mis mentees →
       </button>
@@ -268,48 +261,77 @@ function AIRecommendationCard() {
 
 export default function MiImpactoPage() {
   const router = useRouter();
+  const [data, setData] = useState<ImpactData | null>(null);
+
+  useEffect(() => {
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setData({ totalSessions: 0, totalHours: 0, menteesActive: 0, growthTrend: [0, 0, 0, 0, 0, 0] });
+        return;
+      }
+
+      const { data: rows } = await supabase
+        .from("bookings")
+        .select("mentee_id, duration_min, scheduled_at")
+        .eq("mentor_id", user.id);
+
+      const bookings = rows ?? [];
+      const totalSessions = bookings.length;
+      const totalMins = bookings.reduce((sum, b) => sum + (b.duration_min ?? 30), 0);
+      const totalHours = Math.round((totalMins / 60) * 10) / 10;
+      const uniqueMentees = new Set(bookings.map((b) => b.mentee_id)).size;
+      const growthTrend = buildWeeklyTrend(bookings);
+
+      setData({ totalSessions, totalHours, menteesActive: uniqueMentees, growthTrend });
+    }
+    load();
+  }, []);
 
   const rightSlot = (
     <>
-      <button className="w-9 h-9 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-700 hover:bg-emerald-100 transition-colors relative">
+      <button className="w-9 h-9 rounded-full bg-brand-soft flex items-center justify-center text-brand hover:bg-brand-soft/80 transition-colors relative">
         <IoNotificationsOutline className="text-lg" />
         <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-amber-400 rounded-full" />
       </button>
       <button
         onClick={() => router.push("/messages")}
-        className="w-9 h-9 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-700 hover:bg-emerald-100 transition-colors"
+        className="w-9 h-9 rounded-full bg-brand-soft flex items-center justify-center text-brand hover:bg-brand-soft/80 transition-colors"
       >
         <IoChatbubbleOutline className="text-lg" />
       </button>
     </>
   );
 
+  if (!data) {
+    return (
+      <AppLayout>
+        <AppHeader />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-soft border-t-brand" />
+        </div>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout>
       <AppHeader rightSlot={rightSlot} />
-
       <main className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Mi Impacto</h1>
           <p className="text-xs text-gray-500 mt-0.5">Tu huella como mentora en EllasTransforman</p>
         </div>
-
-        <HeroStatsBand />
-
+        <HeroStatsBand data={data} />
         <MentorLevelCard />
-
         <section>
           <SectionHeader title="Tendencia de crecimiento" icon={<IoTrendingUpOutline className="text-base" />} />
-          <GrowthTrendCard />
+          <GrowthTrendCard data={data} />
         </section>
-
         <BadgesSection />
-
         <MenteeAchievementsSection />
-
         <CertificationsSection />
-
-        <AIRecommendationCard />
+        <AIRecommendationCard data={data} />
       </main>
     </AppLayout>
   );

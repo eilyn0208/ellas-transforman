@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import type { ProfileView, ConnectedMentor } from "@/types/profile";
+import type { ProfileView, ConnectedMentor, CurrentMentee } from "@/types/profile";
 import { mockMenteeProfile, mockMentorProfile } from "@/constants/profile";
 import { IoAddOutline, IoCheckmarkCircle, IoSparklesOutline } from "react-icons/io5";
 import AppHeader from "@/components/AppHeader";
@@ -51,6 +51,46 @@ function useProfileData(): {
               .maybeSingle()
           : { data: null, error: null };
 
+        let currentMentees: CurrentMentee[] = [];
+        if (user) {
+          const { data: bookingRows } = await supabase
+            .from("bookings")
+            .select("mentee_id")
+            .eq("mentor_id", user.id)
+            .eq("status", "confirmed");
+
+          const uniqueMenteeIds = [
+            ...new Set((bookingRows ?? []).map((b) => b.mentee_id as string)),
+          ];
+
+          if (uniqueMenteeIds.length > 0) {
+            const [profilesRes, assessmentsRes] = await Promise.all([
+              supabase.from("profiles").select("id, full_name").in("id", uniqueMenteeIds),
+              supabase
+                .from("assessment_results")
+                .select("user_id, profile_name")
+                .in("user_id", uniqueMenteeIds)
+                .order("created_at", { ascending: false }),
+            ]);
+
+            const avatars = ["👩‍🎓", "👩‍💻", "👩‍🔬", "👩‍🏫", "👩‍💼"];
+            const assessmentMap = new Map(
+              (assessmentsRes.data ?? []).map((a) => [
+                a.user_id as string,
+                a.profile_name as string | null,
+              ])
+            );
+
+            currentMentees = (profilesRes.data ?? []).map((p, i) => ({
+              id: p.id as string,
+              name: (p.full_name as string) ?? "Mentee",
+              avatar: avatars[i % avatars.length],
+              goal: assessmentMap.get(p.id as string) ?? "",
+              isVerified: false,
+            }));
+          }
+        }
+
         const expertise: string[] = Array.isArray(mp?.expertise)
           ? (mp!.expertise as unknown as string[])
           : [];
@@ -69,6 +109,7 @@ function useProfileData(): {
           education: [],
           logros: [],
           activePrograms: [],
+          currentMentees,
         });
       } else {
         const [profileRes, assessmentRes, bookingsRes] = user
@@ -411,28 +452,39 @@ export default function ProfilePage() {
                     Ver todas
                   </button>
                 </div>
-                <div className="flex gap-4">
-                  {profile.currentMentees.map((mentee) => (
-                    <div
-                      key={mentee.id}
-                      className="flex-1 flex flex-col items-center text-center gap-1.5"
-                    >
-                      <div className="w-14 h-14 rounded-full bg-brand-soft flex items-center justify-center text-2xl">
-                        {mentee.avatar}
+                {profile.currentMentees.length === 0 ? (
+                  <div className="py-3 text-center w-full">
+                    <p className="text-gray-400 text-sm">Todavía no tienes mentees activas</p>
+                    <p className="text-gray-300 text-xs mt-1">
+                      Tus mentees aparecerán cuando reserven una sesión
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex gap-4">
+                    {profile.currentMentees.map((mentee) => (
+                      <div
+                        key={mentee.id}
+                        className="flex-1 flex flex-col items-center text-center gap-1.5"
+                      >
+                        <div className="w-14 h-14 rounded-full bg-brand-soft flex items-center justify-center text-2xl">
+                          {mentee.avatar}
+                        </div>
+                        <p className="text-xs font-semibold text-gray-800 leading-tight">
+                          {mentee.name}
+                        </p>
+                        {mentee.goal && (
+                          <p className="text-[10px] text-gray-500">{mentee.goal}</p>
+                        )}
+                        {mentee.isVerified && (
+                          <span className="text-[10px] bg-teal-50 text-teal-600 font-semibold px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                            <IoCheckmarkCircle className="text-xs" />
+                            Verificada
+                          </span>
+                        )}
                       </div>
-                      <p className="text-xs font-semibold text-gray-800 leading-tight">
-                        {mentee.name}
-                      </p>
-                      <p className="text-[10px] text-gray-500">{mentee.goal}</p>
-                      {mentee.isVerified && (
-                        <span className="text-[10px] bg-teal-50 text-teal-600 font-semibold px-2 py-0.5 rounded-full flex items-center gap-0.5">
-                          <IoCheckmarkCircle className="text-xs" />
-                          Verificada
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )
           )}
