@@ -141,7 +141,7 @@ export default function SessionsPage() {
 
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) { router.push("/login"); return; }
 
       const dateToWeekDow = new Map(weekDays.map((d) => [d.date, d.dayOfWeek]));
       const weekStart = weekDays[0].date;

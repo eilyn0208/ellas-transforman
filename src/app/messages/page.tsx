@@ -35,7 +35,7 @@ export default function MessagesPage() {
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { setLoading(false); return; }
+      if (!user) { router.push("/login"); return; }
 
       const storedRole = localStorage.getItem("ellas_role") ?? "mentee";
       const mentor = storedRole === "mentor";

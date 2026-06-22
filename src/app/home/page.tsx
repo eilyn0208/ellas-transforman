@@ -758,6 +758,7 @@ function SectionHeader({
 // ─── Page entry point ──────────────────────────────────────────────────────
 
 export default function HomePage() {
+  const router = useRouter();
   const [role, setRole] = useState<"mentee" | "mentor" | null>(null);
   const [menteeData, setMenteeData] = useState<MenteeDashboardData | null>(null);
   const [mentorData, setMentorData] = useState<MentorDashboardData | null>(null);
@@ -765,6 +766,8 @@ export default function HomePage() {
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) { router.push("/login"); return; }
 
       // 1. profiles → role + nombre canónico
       let dbProfile: { full_name: string | null; role: string | null } | null = null;

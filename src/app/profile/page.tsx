@@ -23,6 +23,7 @@ function useProfileData(): {
   mentorRole: string | null;
   availability: string | null;
 } {
+  const router = useRouter();
   const [profile, setProfile] = useState<ProfileView>(mockMenteeProfile);
   const [loading, setLoading] = useState(true);
   const [assessmentResult, setAssessmentResult] = useState<AssessmentResultRow | null>(null);
@@ -32,6 +33,8 @@ function useProfileData(): {
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) { router.push("/login"); return; }
 
       const role = user?.user_metadata?.role ?? localStorage.getItem("ellas_role");
       const isMentor = role === "mentor" || role === "mentora";
