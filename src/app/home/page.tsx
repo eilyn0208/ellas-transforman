@@ -767,7 +767,7 @@ export default function HomePage() {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
 
-      if (!user) { router.push("/login"); return; }
+      if (!user) { router.push("/welcome"); return; }
 
       // 1. profiles → role + nombre canónico
       let dbProfile: { full_name: string | null; role: string | null } | null = null;

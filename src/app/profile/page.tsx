@@ -34,7 +34,7 @@ function useProfileData(): {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
 
-      if (!user) { router.push("/login"); return; }
+      if (!user) { router.push("/welcome"); return; }
 
       const role = user?.user_metadata?.role ?? localStorage.getItem("ellas_role");
       const isMentor = role === "mentor" || role === "mentora";
