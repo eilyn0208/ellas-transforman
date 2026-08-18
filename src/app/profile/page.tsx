@@ -248,6 +248,10 @@ export default function ProfilePage() {
   async function handleSignOut() {
     await supabase.auth.signOut();
     localStorage.removeItem("ellas_role");
+    localStorage.removeItem("ellas_name");
+    localStorage.removeItem("ellas_mentee_answers");
+    localStorage.removeItem("ellas_mentor_answers");
+    localStorage.removeItem("ellas_selected_mentor");
     router.push("/welcome");
   }
 

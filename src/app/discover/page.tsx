@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { IoCloseOutline } from "react-icons/io5";
 import AppLayout from "@/components/AppLayout";
 import { supabase } from "@/lib/supabase/client";
 
@@ -137,7 +138,14 @@ export default function DiscoverPage() {
   if (loading) {
     return (
       <AppLayout showNav={false} bg="bg-white">
-        <main className="flex-1 px-6 py-6 flex flex-col justify-center items-center">
+        <main className="relative flex-1 px-6 py-6 flex flex-col justify-center items-center">
+          <button
+            onClick={() => router.push("/home")}
+            className="absolute right-4 top-4 w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
+            aria-label="Salir a inicio"
+          >
+            <IoCloseOutline className="text-xl" />
+          </button>
           <div className="w-10 h-10 rounded-full border-4 border-brand-soft border-t-brand animate-spin mb-4" />
           <p className="text-gray-500 text-sm">Buscando mentoras para ti...</p>
         </main>
@@ -148,9 +156,18 @@ export default function DiscoverPage() {
   return (
     <AppLayout showNav={false} bg="bg-white">
       <main className="flex-1 px-6 py-6 flex flex-col justify-center">
-        <h1 className="text-3xl font-bold mb-6 text-center">
-          Mentoras para ti 💜
-        </h1>
+        <div className="relative mb-6">
+          <h1 className="text-3xl font-bold text-center">
+            Mentoras para ti 💜
+          </h1>
+          <button
+            onClick={() => router.push("/home")}
+            className="absolute right-0 top-0 w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
+            aria-label="Salir a inicio"
+          >
+            <IoCloseOutline className="text-xl" />
+          </button>
+        </div>
 
         {!current ? (
           <div className="rounded-3xl border border-gray-200 p-8 text-center">
