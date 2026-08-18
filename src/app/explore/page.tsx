@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   IoSearchOutline,
-  IoNotificationsOutline,
   IoChatbubbleOutline,
   IoChevronBackOutline,
   IoChevronForwardOutline,
@@ -18,6 +17,7 @@ import {
 import type { RecommendedMentor } from "@/types/explore";
 import AppHeader from "@/components/AppHeader";
 import AppLayout from "@/components/AppLayout";
+import NotificationBell from "@/components/NotificationBell";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import { supabase } from "@/lib/supabase/client";
@@ -72,12 +72,7 @@ export default function ExplorePage() {
 
   const rightSlot = (
     <>
-      <button className="relative w-10 h-10 rounded-full bg-brand-soft flex items-center justify-center text-brand hover:bg-brand-light transition-colors">
-        <IoNotificationsOutline className="text-xl" />
-        <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
-          3
-        </span>
-      </button>
+      <NotificationBell />
       <button
         onClick={() => router.push("/messages")}
         className="w-10 h-10 rounded-full bg-brand-soft flex items-center justify-center text-brand hover:bg-brand-light transition-colors"

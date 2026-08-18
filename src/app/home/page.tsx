@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import {
-  IoNotificationsOutline,
   IoChatbubbleOutline,
   IoCalendarOutline,
   IoTimeOutline,
@@ -19,6 +18,7 @@ import {
 } from "react-icons/io5";
 import AppHeader from "@/components/AppHeader";
 import AppLayout from "@/components/AppLayout";
+import NotificationBell from "@/components/NotificationBell";
 import type {
   MenteeDashboardData,
   MentorDashboardData,
@@ -377,12 +377,7 @@ function MenteeDashboard({
 
   const rightSlot = (
     <>
-      <button
-        onClick={() => router.push("/notifications")}
-        className="w-9 h-9 rounded-full bg-brand-soft flex items-center justify-center text-brand hover:bg-brand-light transition-colors relative"
-      >
-        <IoNotificationsOutline className="text-lg" />
-      </button>
+      <NotificationBell />
       <button
         onClick={() => router.push("/messages")}
         className="w-9 h-9 rounded-full bg-brand-soft flex items-center justify-center text-brand hover:bg-brand-light transition-colors"
@@ -697,12 +692,7 @@ function MentorDashboard({
 
   const rightSlot = (
     <>
-      <button
-        onClick={() => router.push("/notifications")}
-        className="w-9 h-9 rounded-full bg-brand-soft flex items-center justify-center text-brand hover:bg-brand-soft/80 transition-colors relative"
-      >
-        <IoNotificationsOutline className="text-lg" />
-      </button>
+      <NotificationBell />
       <button
         onClick={() => router.push("/messages")}
         className="w-9 h-9 rounded-full bg-brand-soft flex items-center justify-center text-brand hover:bg-brand-soft/80 transition-colors"

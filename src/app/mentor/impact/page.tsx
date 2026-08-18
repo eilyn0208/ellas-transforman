@@ -12,11 +12,11 @@ import {
   IoRibbonOutline,
   IoSchoolOutline,
   IoTrendingUpOutline,
-  IoNotificationsOutline,
   IoChatbubbleOutline,
 } from "react-icons/io5";
 import AppHeader from "@/components/AppHeader";
 import AppLayout from "@/components/AppLayout";
+import NotificationBell from "@/components/NotificationBell";
 
 const BRAND = "#824be5";
 
@@ -290,10 +290,7 @@ export default function MiImpactoPage() {
 
   const rightSlot = (
     <>
-      <button className="w-9 h-9 rounded-full bg-brand-soft flex items-center justify-center text-brand hover:bg-brand-soft/80 transition-colors relative">
-        <IoNotificationsOutline className="text-lg" />
-        <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-amber-400 rounded-full" />
-      </button>
+      <NotificationBell />
       <button
         onClick={() => router.push("/messages")}
         className="w-9 h-9 rounded-full bg-brand-soft flex items-center justify-center text-brand hover:bg-brand-soft/80 transition-colors"
