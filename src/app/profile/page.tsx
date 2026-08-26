@@ -251,7 +251,6 @@ export default function ProfilePage() {
     localStorage.removeItem("ellas_name");
     localStorage.removeItem("ellas_mentee_answers");
     localStorage.removeItem("ellas_mentor_answers");
-    localStorage.removeItem("ellas_selected_mentor");
     router.push("/welcome");
   }
 

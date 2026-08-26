@@ -89,7 +89,6 @@ export default function DiscoverPage() {
 
     setTimeout(() => {
       if (direction === "right") {
-        localStorage.setItem("ellas_selected_mentor", JSON.stringify(mentor));
         router.push(`/booking/${mentor.user_id}`);
         return;
       }

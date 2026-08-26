@@ -7,14 +7,10 @@ import PrimaryButton from "@/components/PrimaryButton";
 import AppLayout from "@/components/AppLayout";
 import AppHeader from "@/components/AppHeader";
 import { supabase } from "@/lib/supabase/client";
+import { getMentorProfile, type MentorProfileSummary } from "@/lib/mentors";
 
 interface Props {
   params: Promise<{ mentorId: string }>;
-}
-
-interface SelectedMentor {
-  user_id: string;
-  name: string;
 }
 
 interface Slot {
@@ -46,18 +42,17 @@ export default function SchedulePage({ params }: Props) {
   const { mentorId } = use(params);
   const router = useRouter();
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [mentor, setMentor] = useState<SelectedMentor | null>(null);
+  const [mentor, setMentor] = useState<MentorProfileSummary | null>(null);
   const [slots, setSlots] = useState<Slot[]>([]);
   const [loading, setLoading] = useState(true);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem("ellas_selected_mentor");
-      if (raw) setMentor(JSON.parse(raw));
-    } catch { /* ignore */ }
-    setReady(true);
-  }, []);
+    getMentorProfile(mentorId).then((data) => {
+      setMentor(data);
+      setReady(true);
+    });
+  }, [mentorId]);
 
   useEffect(() => {
     if (!ready) return;

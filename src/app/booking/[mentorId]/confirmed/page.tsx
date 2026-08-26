@@ -7,14 +7,10 @@ import PrimaryButton from "@/components/PrimaryButton";
 import AppLayout from "@/components/AppLayout";
 import AppHeader from "@/components/AppHeader";
 import { supabase } from "@/lib/supabase/client";
+import { getMentorProfile, type MentorProfileSummary } from "@/lib/mentors";
 
 interface Props {
   params: Promise<{ mentorId: string }>;
-}
-
-interface SelectedMentor {
-  user_id: string;
-  name: string;
 }
 
 function ConfirmedContent({ mentorId }: { mentorId: string }) {
@@ -22,17 +18,16 @@ function ConfirmedContent({ mentorId }: { mentorId: string }) {
   const searchParams = useSearchParams();
   const slot        = searchParams.get("slot")        ?? "Hoy · 3:30 PM";
   const scheduledAt = searchParams.get("scheduledAt") ?? new Date().toISOString();
-  const [mentor, setMentor] = useState<SelectedMentor | null>(null);
+  const [mentor, setMentor] = useState<MentorProfileSummary | null>(null);
   const [ready, setReady] = useState(false);
   const savedRef = useRef(false);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem("ellas_selected_mentor");
-      if (raw) setMentor(JSON.parse(raw));
-    } catch { /* ignore */ }
-    setReady(true);
-  }, []);
+    getMentorProfile(mentorId).then((data) => {
+      setMentor(data);
+      setReady(true);
+    });
+  }, [mentorId]);
 
   // Persist booking exactly once. Double guard:
   // - savedRef: prevents React Strict Mode double-invoke in dev

@@ -5,29 +5,24 @@ import { useRouter } from "next/navigation";
 import PrimaryButton from "@/components/PrimaryButton";
 import AppLayout from "@/components/AppLayout";
 import AppHeader from "@/components/AppHeader";
+import { getMentorProfile, type MentorProfileSummary } from "@/lib/mentors";
 
 interface Props {
   params: Promise<{ mentorId: string }>;
 }
 
-interface SelectedMentor {
-  user_id: string;
-  name: string;
-}
-
 export default function ConnectConfirmationPage({ params }: Props) {
   const { mentorId } = use(params);
   const router = useRouter();
-  const [mentor, setMentor] = useState<SelectedMentor | null>(null);
+  const [mentor, setMentor] = useState<MentorProfileSummary | null>(null);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem("ellas_selected_mentor");
-      if (raw) setMentor(JSON.parse(raw));
-    } catch { /* ignore */ }
-    setReady(true);
-  }, []);
+    getMentorProfile(mentorId).then((data) => {
+      setMentor(data);
+      setReady(true);
+    });
+  }, [mentorId]);
 
   if (!ready) return null;
   if (!mentor) { router.replace("/discover"); return null; }
