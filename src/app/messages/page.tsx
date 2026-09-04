@@ -8,12 +8,11 @@ import AppHeader from "@/components/AppHeader";
 import AppLayout from "@/components/AppLayout";
 
 interface Contact {
-  id: string;
+  conversationId: string;
+  otherPartyId: string;
   name: string;
   role: string;
-  bookingId: string;
-  scheduledAt: string;
-  slotLabel: string | null;
+  timestamp: string;
 }
 
 function timeAgo(iso: string): string {
@@ -41,67 +40,38 @@ export default function MessagesPage() {
       const mentor = storedRole === "mentor";
       setIsMentor(mentor);
 
-      if (mentor) {
-        const { data: bookings } = await supabase
-          .from("bookings")
-          .select("id, mentee_id, scheduled_at, slot_label, status")
-          .eq("mentor_id", user.id)
-          .neq("status", "cancelled")
-          .order("scheduled_at", { ascending: false });
+      const { data: conversations } = await supabase
+        .from("conversations")
+        .select("id, mentor_id, mentee_id, last_message_at, created_at")
+        .order("last_message_at", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false });
 
-        const rows = bookings ?? [];
-        const uniqueMenteeIds = [...new Set(rows.map((b) => b.mentee_id))].filter(Boolean) as string[];
+      const rows = conversations ?? [];
+      const otherPartyIds = [
+        ...new Set(rows.map((c) => (mentor ? c.mentee_id : c.mentor_id))),
+      ];
 
-        let nameMap = new Map<string, string>();
-        if (uniqueMenteeIds.length > 0) {
-          const { data: profiles } = await supabase
-            .from("profiles")
-            .select("id, full_name")
-            .in("id", uniqueMenteeIds);
-          nameMap = new Map((profiles ?? []).map((p) => [p.id, p.full_name as string]));
-        }
-
-        const seen = new Set<string>();
-        const result: Contact[] = [];
-        for (const b of rows) {
-          if (seen.has(b.mentee_id)) continue;
-          seen.add(b.mentee_id);
-          result.push({
-            id: b.mentee_id,
-            name: nameMap.get(b.mentee_id) ?? "Mentee",
-            role: "Mentee",
-            bookingId: b.id,
-            scheduledAt: b.scheduled_at,
-            slotLabel: b.slot_label,
-          });
-        }
-        setContacts(result);
-      } else {
-        const { data: bookings } = await supabase
-          .from("bookings")
-          .select("id, mentor_id, mentor_name, scheduled_at, slot_label, status")
-          .eq("mentee_id", user.id)
-          .neq("status", "cancelled")
-          .order("scheduled_at", { ascending: false });
-
-        const rows = bookings ?? [];
-        const seen = new Set<string>();
-        const result: Contact[] = [];
-        for (const b of rows) {
-          if (seen.has(b.mentor_id)) continue;
-          seen.add(b.mentor_id);
-          result.push({
-            id: b.mentor_id,
-            name: b.mentor_name ?? "Mentora",
-            role: "Mentora",
-            bookingId: b.id,
-            scheduledAt: b.scheduled_at,
-            slotLabel: b.slot_label,
-          });
-        }
-        setContacts(result);
+      let nameMap = new Map<string, string>();
+      if (otherPartyIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, full_name")
+          .in("id", otherPartyIds);
+        nameMap = new Map((profiles ?? []).map((p) => [p.id, p.full_name as string]));
       }
 
+      const result: Contact[] = rows.map((c) => {
+        const otherPartyId = mentor ? c.mentee_id : c.mentor_id;
+        return {
+          conversationId: c.id,
+          otherPartyId,
+          name: nameMap.get(otherPartyId) ?? (mentor ? "Mentee" : "Mentora"),
+          role: mentor ? "Mentee" : "Mentora",
+          timestamp: c.last_message_at ?? c.created_at,
+        };
+      });
+
+      setContacts(result);
       setLoading(false);
     }
     load();
@@ -157,8 +127,8 @@ export default function MessagesPage() {
 
         {contacts.map((contact) => (
           <button
-            key={contact.bookingId}
-            onClick={() => router.push(`/messages/${contact.bookingId}`)}
+            key={contact.conversationId}
+            onClick={() => router.push(`/messages/${contact.conversationId}`)}
             className="w-full bg-white rounded-2xl px-4 py-3.5 flex items-center gap-3 shadow-sm hover:shadow-md transition-shadow text-left"
           >
             <div className="w-12 h-12 rounded-full bg-brand-soft flex items-center justify-center text-2xl flex-shrink-0">
@@ -169,13 +139,10 @@ export default function MessagesPage() {
               <div className="flex items-center justify-between mb-0.5">
                 <p className="font-semibold text-sm text-gray-900 truncate">{contact.name}</p>
                 <span className="text-[10px] text-gray-400 flex-shrink-0 ml-2">
-                  {timeAgo(contact.scheduledAt)}
+                  {timeAgo(contact.timestamp)}
                 </span>
               </div>
               <p className="text-xs text-gray-400 truncate">{contact.role}</p>
-              <p className="text-xs text-gray-500 truncate mt-0.5">
-                {contact.slotLabel ?? "Sesión de mentoría"}
-              </p>
             </div>
           </button>
         ))}

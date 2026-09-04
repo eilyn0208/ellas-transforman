@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useEffect, useRef } from "react";
+import { use, useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { IoCalendarOutline, IoTimeOutline } from "react-icons/io5";
 import { supabase } from "@/lib/supabase/client";
 import AppHeader from "@/components/AppHeader";
@@ -10,9 +10,12 @@ interface Props {
   params: Promise<{ conversationId: string }>;
 }
 
-interface BookingContext {
-  contactName: string;
-  contactRole: string;
+interface ContactInfo {
+  name: string;
+  role: string;
+}
+
+interface NextSession {
   scheduledAt: string;
   slotLabel: string | null;
   locationType: string | null;
@@ -53,12 +56,32 @@ export default function ConversationPage({ params }: Props) {
 
   const [userId, setUserId] = useState<string>("");
   const [isMentor, setIsMentor] = useState(false);
-  const [booking, setBooking] = useState<BookingContext | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [contact, setContact] = useState<ContactInfo | null>(null);
+  const [nextSession, setNextSession] = useState<NextSession | null>(null);
+  const [notFound, setNotFound] = useState(false);
+  const [messagesById, setMessagesById] = useState<Map<string, Message>>(new Map());
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  const messages = useMemo(
+    () => [...messagesById.values()].sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
+    [messagesById]
+  );
+
+  const upsertMessage = useCallback((row: { id: string; sender_id: string; content: string; created_at: string }) => {
+    setMessagesById((prev) => {
+      const next = new Map(prev);
+      next.set(row.id, {
+        id: row.id,
+        senderId: row.sender_id,
+        content: row.content,
+        createdAt: row.created_at,
+      });
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     async function load() {
@@ -71,35 +94,62 @@ export default function ConversationPage({ params }: Props) {
       const mentor = storedRole === "mentor";
       setIsMentor(mentor);
 
-      const { data: bk } = await supabase
-        .from("bookings")
-        .select("id, mentor_id, mentee_id, mentor_name, scheduled_at, slot_label, location_type, status")
+      const { data: conv } = await supabase
+        .from("conversations")
+        .select("id, mentor_id, mentee_id")
         .eq("id", conversationId)
         .maybeSingle();
 
-      if (bk) {
-        if (mentor) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("full_name")
-            .eq("id", bk.mentee_id)
-            .maybeSingle();
-          setBooking({
-            contactName: profile?.full_name ?? "Mentee",
-            contactRole: "Mentee",
-            scheduledAt: bk.scheduled_at,
-            slotLabel: bk.slot_label,
-            locationType: bk.location_type,
-          });
-        } else {
-          setBooking({
-            contactName: bk.mentor_name ?? "Mentora",
-            contactRole: "Mentora",
-            scheduledAt: bk.scheduled_at,
-            slotLabel: bk.slot_label,
-            locationType: bk.location_type,
-          });
-        }
+      if (!conv) {
+        setNotFound(true);
+        setLoading(false);
+        return;
+      }
+
+      const otherPartyId = mentor ? conv.mentee_id : conv.mentor_id;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", otherPartyId)
+        .maybeSingle();
+
+      setContact({
+        name: profile?.full_name ?? (mentor ? "Mentee" : "Mentora"),
+        role: mentor ? "Mentee" : "Mentora",
+      });
+
+      const { data: booking } = await supabase
+        .from("bookings")
+        .select("scheduled_at, slot_label, location_type")
+        .eq("mentor_id", conv.mentor_id)
+        .eq("mentee_id", conv.mentee_id)
+        .neq("status", "cancelled")
+        .gte("scheduled_at", new Date().toISOString())
+        .order("scheduled_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (booking) {
+        setNextSession({
+          scheduledAt: booking.scheduled_at,
+          slotLabel: booking.slot_label,
+          locationType: booking.location_type,
+        });
+      }
+
+      const { data: history } = await supabase
+        .from("messages")
+        .select("id, sender_id, content, created_at")
+        .eq("conversation_id", conversationId)
+        .order("created_at", { ascending: true });
+
+
+      if (history) {
+        setMessagesById(new Map(history.map((row) => [
+          row.id,
+          { id: row.id, senderId: row.sender_id, content: row.content, createdAt: row.created_at },
+        ])));
       }
 
       setLoading(false);
@@ -108,20 +158,41 @@ export default function ConversationPage({ params }: Props) {
   }, [conversationId]);
 
   useEffect(() => {
+    const channel = supabase
+      .channel(`messages:${conversationId}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${conversationId}` },
+        (payload) => upsertMessage(payload.new as { id: string; sender_id: string; content: string; created_at: string })
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [conversationId, upsertMessage]);
+
+  useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  function sendMessage() {
-    if (!draft.trim() || sending) return;
+  async function sendMessage() {
+    const content = draft.trim();
+    if (!content || sending) return;
     setSending(true);
-    const msg: Message = {
-      id: `msg-${Date.now()}`,
-      senderId: userId,
-      content: draft.trim(),
-      createdAt: new Date().toISOString(),
-    };
-    setMessages((prev) => [...prev, msg]);
-    setDraft("");
+
+    const { data, error } = await supabase
+      .from("messages")
+      .insert({ conversation_id: conversationId, sender_id: userId, content })
+      .select("id, sender_id, content, created_at")
+      .single();
+
+
+    if (!error && data) {
+      upsertMessage(data);
+      setDraft("");
+    }
+
     setSending(false);
   }
 
@@ -135,7 +206,7 @@ export default function ConversationPage({ params }: Props) {
     );
   }
 
-  if (!booking) {
+  if (notFound || !contact) {
     return (
       <AppLayout showNav={false}>
         <AppHeader showBack />
@@ -146,9 +217,13 @@ export default function ConversationPage({ params }: Props) {
     );
   }
 
-  const dt = new Date(booking.scheduledAt);
-  const dateLabel = dt.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" });
-  const timeStr = dt.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false });
+  let dateLabel = "";
+  let timeStr = "";
+  if (nextSession) {
+    const dt = new Date(nextSession.scheduledAt);
+    dateLabel = dt.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" });
+    timeStr = dt.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false });
+  }
 
   return (
     <AppLayout showNav={false}>
@@ -162,8 +237,8 @@ export default function ConversationPage({ params }: Props) {
               {isMentor ? "👩‍💻" : "👩‍💼"}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-bold text-sm text-gray-900">{booking.contactName}</p>
-              <p className="text-xs text-gray-500">{booking.contactRole}</p>
+              <p className="font-bold text-sm text-gray-900">{contact.name}</p>
+              <p className="text-xs text-gray-500">{contact.role}</p>
             </div>
             <span className="text-[10px] bg-brand text-white font-semibold px-2.5 py-1 rounded-full flex-shrink-0">
               {isMentor ? "Tu mentee" : "Tu mentora"}
@@ -171,20 +246,28 @@ export default function ConversationPage({ params }: Props) {
           </div>
         </div>
 
-        {/* Booking context */}
-        <div className="mx-5 mb-3 bg-brand-soft rounded-2xl px-4 py-3 flex flex-col gap-1.5">
-          <p className="text-[10px] font-semibold text-brand uppercase tracking-wide mb-0.5">
-            Sesión agendada
-          </p>
-          <div className="flex items-center gap-1.5 text-xs text-gray-700">
-            <IoCalendarOutline className="text-brand text-sm flex-shrink-0" />
-            {dateLabel}
+        {/* Next session context */}
+        {nextSession ? (
+          <div className="mx-5 mb-3 bg-brand-soft rounded-2xl px-4 py-3 flex flex-col gap-1.5">
+            <p className="text-[10px] font-semibold text-brand uppercase tracking-wide mb-0.5">
+              Sesión agendada
+            </p>
+            <div className="flex items-center gap-1.5 text-xs text-gray-700">
+              <IoCalendarOutline className="text-brand text-sm flex-shrink-0" />
+              {dateLabel}
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-gray-700">
+              <IoTimeOutline className="text-brand text-sm flex-shrink-0" />
+              {timeStr} · {nextSession.slotLabel ?? nextSession.locationType ?? "Online"}
+            </div>
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-gray-700">
-            <IoTimeOutline className="text-brand text-sm flex-shrink-0" />
-            {timeStr} · {booking.slotLabel ?? booking.locationType ?? "Online"}
+        ) : (
+          <div className="mx-5 mb-3 bg-gray-50 rounded-2xl px-4 py-3">
+            <p className="text-xs text-gray-400">
+              No tienes ninguna sesión agendada con {isMentor ? "esta mentee" : "esta mentora"} por ahora.
+            </p>
           </div>
-        </div>
+        )}
 
         {/* Messages or empty state */}
         <div className="flex-1 py-2">

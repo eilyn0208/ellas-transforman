@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { gemini } from "@/lib/gemini/client";
-import { store } from "@/lib/message-store";
 import type { MentorSummary } from "@/types/messages";
 
 const mockMentorSummaries: Record<string, MentorSummary> = {
@@ -42,8 +41,7 @@ export async function POST(req: NextRequest) {
     mentorProfile?: Record<string, unknown>;
   };
 
-  const storedUser = mentorId ? store.users.get(mentorId) : null;
-  const profile = provided ?? storedUser?.onboardingAnswers ?? {};
+  const profile = provided ?? {};
 
   if (!process.env.GEMINI_API_KEY) {
     const fallback = mentorId ? mockMentorSummaries[mentorId] : null;
